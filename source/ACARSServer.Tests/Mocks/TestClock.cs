@@ -1,6 +1,6 @@
 using ACARSServer.Infrastructure;
 
-namespace ACARSServer.Tests.TestDoubles;
+namespace ACARSServer.Tests.Mocks;
 
 public class TestClock : IClock
 {

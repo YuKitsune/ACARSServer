@@ -1,7 +1,7 @@
 using System.Net;
 using ACARSServer.Clients;
 using ACARSServer.Contracts;
-using ACARSServer.Tests.TestDoubles;
+using ACARSServer.Tests.Mocks;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ACARSServer.Tests.Clients;

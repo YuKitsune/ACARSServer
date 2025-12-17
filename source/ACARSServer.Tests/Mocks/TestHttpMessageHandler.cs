@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace ACARSServer.Tests.TestDoubles;
+namespace ACARSServer.Tests.Mocks;
 
 public class TestHttpMessageHandler : HttpMessageHandler
 {
