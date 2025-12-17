@@ -112,9 +112,7 @@ public class HoppieAcarsClientTests : IDisposable
         var formData = await ParseFormDataFromRequest(sendRequest);
 
         Assert.Equal("cpdlc", formData["type"]);
-
-        var packet = formData["packet"];
-        Assert.Equal("/data/1//WU/CLIMB%20TO%20@FL350@", packet);
+        Assert.Equal("/data/1//WU/CLIMB%20TO%20@FL350@", formData["packet"]);
     }
 
     [Fact]
@@ -145,11 +143,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         Assert.NotNull(sendRequest);
         var formData = await ParseFormDataFromRequest(sendRequest);
-        var packet = formData["packet"];
-        var parts = packet.Split('/');
-
-        Assert.Equal("5", parts[3]); // ReplyToMessageId
-        Assert.Equal("NE", parts[4]); // NoResponse
+        Assert.Equal("/data/1/5/NE/ROGER", formData["packet"]);
     }
 
     [Theory]
@@ -183,9 +177,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         Assert.NotNull(sendRequest);
         var formData = await ParseFormDataFromRequest(sendRequest);
-        var packet = formData["packet"];
-        var parts = packet.Split('/');
-        Assert.Equal(expectedCode, parts[4]);
+        Assert.Equal($"/data/1//{expectedCode}/TEST", formData["packet"]);
 
         await client.DisposeAsync();
         _clients.Remove(client);
@@ -218,9 +210,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         Assert.NotNull(sendRequest);
         var formData = await ParseFormDataFromRequest(sendRequest);
-        var packet = formData["packet"];
-        Assert.Contains("%20", packet); // Space should be encoded
-        // Assert.Contains("%40", packet); // @ should be encoded
+        Assert.Equal("/data/1//WU/CLIMB%20TO%20@FL350@", formData["packet"]);
     }
 
     [Fact]
