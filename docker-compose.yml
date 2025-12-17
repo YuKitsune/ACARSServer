@@ -1,0 +1,11 @@
+services:
+  maestro.server:
+    image: ACARSServer
+    build:
+      context: .
+      dockerfile: source/ACARSServer/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - SEQ_SERVER_URL=http://seq:5341
+    ports:
+      - "5272:8080"
