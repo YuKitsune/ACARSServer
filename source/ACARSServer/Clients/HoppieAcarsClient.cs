@@ -41,7 +41,7 @@ public class HoppieAcarsClient : IAcarsClient
             throw new ObjectDisposedException(nameof(HoppieAcarsClient));
 
         _pollCancellationTokenSource = new CancellationTokenSource();
-        _pollTask = Task.Run(() => Poll(_pollCancellationTokenSource.Token), cancellationToken);
+        _pollTask = Poll(_pollCancellationTokenSource.Token);
 
         _logger.LogInformation(
             "Connected to Hoppies ACARS network for {Network} as {StationIdentifier}",
@@ -216,21 +216,21 @@ public class HoppieAcarsClient : IAcarsClient
     static IAcarsMessage ParseCpdlcMessage(string from, string to, string packet)
     {
         var parts = packet.Split('/');
-        if (parts.Length != 5)
+        if (parts.Length != 6)
             throw new Exception($"Invalid CPDLC packet: Expected 5 components, got {parts.Length}: \"{packet}\"");
 
-        var messageId = int.Parse(parts[1]);
-        int? replyToId = !string.IsNullOrEmpty(parts[2]) ? int.Parse(parts[2]) : null;
-        var responseType = parts[3] switch
+        var messageId = int.Parse(parts[2]);
+        int? replyToId = !string.IsNullOrEmpty(parts[3]) ? int.Parse(parts[3]) : null;
+        var responseType = parts[4] switch
         {
             "NE" => CpdlcResponseType.NoResponse,
             "WU" => CpdlcResponseType.WilcoUnable,
             "AN" => CpdlcResponseType.AffirmativeNegative,
             "R" => CpdlcResponseType.Roger,
-            _ => throw new ArgumentOutOfRangeException($"Unexpected CPDLC response type: {parts[3]}")
+            _ => throw new ArgumentOutOfRangeException($"Unexpected CPDLC response type: {parts[4]}")
         };
 
-        var content = parts[4];
+        var content = parts[5];
 
         if (replyToId is not null)
         {
@@ -271,7 +271,7 @@ public class HoppieAcarsClient : IAcarsClient
 
     string GetPacket(IAcarsMessage message) => message switch
     {
-        ITelexMessage m => m.Content,
+        ITelexMessage m => UrlEncoder.Default.Encode(m.Content),
         ICpdlcMessage m => SerializeCpdlcMessage(m),
         _ => throw new ArgumentException($"Unexpected message type: {message.GetType().Name}")
     };
@@ -303,8 +303,6 @@ public class HoppieAcarsClient : IAcarsClient
         if (_disposed)
             return;
         
-        _disposed = true;
-        
         await Disconnect(CancellationToken.None);
         
         if (_pollTask is not null)
@@ -314,5 +312,7 @@ public class HoppieAcarsClient : IAcarsClient
             _pollCancellationTokenSource.Dispose();
         
         _httpClient.Dispose();
+        
+        _disposed = true;
     }
 }
