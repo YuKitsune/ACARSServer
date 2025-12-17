@@ -1,6 +1,6 @@
 services:
-  maestro.server:
-    image: ACARSServer
+  acars-server:
+    image: acars-server
     build:
       context: .
       dockerfile: source/ACARSServer/Dockerfile

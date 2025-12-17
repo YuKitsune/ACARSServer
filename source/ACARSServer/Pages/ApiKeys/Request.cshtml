@@ -1,0 +1,83 @@
+@page
+@model ACARSServer.Pages.ApiKeys.RequestModel
+@{
+    ViewData["Title"] = "Request API Key";
+}
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h2 class="card-title">Request API Key</h2>
+
+        @if (Model.GeneratedKey != null)
+        {
+            <div class="mb-3">
+                <label class="form-label fw-bold">Your API Key:</label>
+                <div class="input-group">
+                    <code class="form-control bg-light font-monospace" id="apiKey" style="overflow-x: auto;">@Model.GeneratedKey</code>
+                    <button type="button" id="copyButton" class="btn btn-outline-secondary" onclick="copyToClipboard()">
+                        Copy
+                    </button>
+                </div>
+            </div>
+
+            <div class="alert alert-info" role="alert">
+                <strong>Important:</strong> Save this API key securely. You'll need it to connect to the ACARS Server.
+            </div>
+        }
+        else
+        {
+            <p class="card-text">Enter your VATSIM CID to generate an API key for connecting to the ACARS Server.</p>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+            }
+
+            <form method="post">
+                <div class="mb-3">
+                    <label asp-for="VatsimCid" class="form-label">VATSIM CID:</label>
+                    <input asp-for="VatsimCid" type="text" class="form-control" placeholder="e.g., 1234567" />
+                    <span asp-validation-for="VatsimCid" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Generate API Key</button>
+            </form>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyToClipboard() {
+            const apiKey = document.getElementById('apiKey').textContent;
+            const button = document.getElementById('copyButton');
+            const originalText = button.textContent;
+
+            navigator.clipboard.writeText(apiKey).then(() => {
+                // Change button to show success
+                button.textContent = '✓ Copied!';
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-success');
+
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-outline-secondary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                // Show error state
+                button.textContent = '✗ Failed';
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-danger');
+
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('btn-danger');
+                    button.classList.add('btn-outline-secondary');
+                }, 2000);
+            });
+        }
+    </script>
+}

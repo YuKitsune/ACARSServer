@@ -1,6 +1,7 @@
 using ACARSServer.Contracts;
 using ACARSServer.Messages;
 using ACARSServer.Model;
+using ACARSServer.Services;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 
@@ -11,15 +12,18 @@ public class ControllerHub : Hub
     private readonly IControllerManager _controllerManager;
     private readonly IMediator _mediator;
     private readonly ILogger<ControllerHub> _logger;
+    private readonly IApiKeyValidator _apiKeyValidator;
 
     public ControllerHub(
         IControllerManager controllerManager,
         IMediator mediator,
-        ILogger<ControllerHub> logger)
+        ILogger<ControllerHub> logger,
+        IApiKeyValidator apiKeyValidator)
     {
         _controllerManager = controllerManager;
         _mediator = mediator;
         _logger = logger;
+        _apiKeyValidator = apiKeyValidator;
     }
 
     public override async Task OnConnectedAsync()
@@ -30,10 +34,19 @@ public class ControllerHub : Hub
             throw new HubException("HTTP context not available");
         }
 
+        // Read API key from header
+        var apiKey = httpContext.Request.Headers["X-ACARS-ApiKey"].ToString();
+
+        // Read connection parameters from query string
         var query = httpContext.Request.Query;
         var network = query["network"].ToString();
         var stationId = query["stationId"].ToString();
         var callsign = query["callsign"].ToString();
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            throw new HubException("API key is required (provide X-ACARS-ApiKey header)");
+        }
 
         if (string.IsNullOrWhiteSpace(network) ||
             string.IsNullOrWhiteSpace(stationId) ||
@@ -42,18 +55,27 @@ public class ControllerHub : Hub
             throw new HubException("Required parameters missing: network, stationId, and callsign must be provided");
         }
 
+        // Validate API key
+        var validationResult = await _apiKeyValidator.ValidateAsync(apiKey);
+        if (validationResult is null)
+        {
+            _logger.LogWarning("Invalid API key attempt from {ConnectionId}", Context.ConnectionId);
+            throw new HubException("Invalid API key");
+        }
+
         var controller = new ControllerInfo(
-            Guid.NewGuid(), // TODO: Source from database
+            Guid.NewGuid(),
             Context.ConnectionId,
             network,
             stationId,
-            callsign);
+            callsign,
+            validationResult.VatsimCid);
 
         _controllerManager.AddController(controller);
 
         _logger.LogInformation(
-            "Controller connected: {Callsign} on {Network}/{StationId} (ConnectionId: {ConnectionId})",
-            callsign, network, stationId, Context.ConnectionId);
+            "Controller connected: {Callsign} (VATSIM CID: {VatsimCid}) on {Network}/{StationId} (ConnectionId: {ConnectionId})",
+            callsign, validationResult.VatsimCid, network, stationId, Context.ConnectionId);
 
         await _mediator.Publish(
             new ControllerConnectedNotification(

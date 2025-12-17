@@ -22,13 +22,15 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             "ConnectionId-1",
             "VATSIM",
             "YBBB",
-            "BN-TSN_FSS");
+            "BN-TSN_FSS",
+            "1234567");
         var controller2 = new ControllerInfo(
             Guid.NewGuid(),
             "ConnectionId-2",
             "VATSIM",
             "YBBB",
-            "BN-OCN_CTR");
+            "BN-OCN_CTR",
+            "7654321");
         controllerManager.AddController(controller1);
         controllerManager.AddController(controller2);
 
@@ -77,7 +79,8 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             "ConnectionId-1",
             "VATSIM",
             "YMMM",
-            "ML-IND_FSS");
+            "ML-IND_FSS",
+            "1234567");
         controllerManager.AddController(controller);
 
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
@@ -120,13 +123,15 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             "conn-vatsim",
             "VATSIM",
             "YBBB",
-            "BN-TSN_FSS");
+            "BN-TSN_FSS",
+            "1234567");
         var ivaoController = new ControllerInfo(
             Guid.NewGuid(),
             "conn-ivao",
             "IVAO",
             "YBBB",
-            "BN-TSN_FSS");
+            "BN-TSN_FSS",
+            "7654321");
         controllerManager.AddController(vatsimController);
         controllerManager.AddController(ivaoController);
 

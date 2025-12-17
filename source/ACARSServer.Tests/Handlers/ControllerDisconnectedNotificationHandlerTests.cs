@@ -47,7 +47,8 @@ public class ControllerDisconnectedNotificationHandlerTests
             "ConnectionId",
             "VATSIM",
             "YBBB",
-            "BN-ISA_CTR");
+            "BN-ISA_CTR",
+            "1234567");
         controllerManager.AddController(remainingController);
 
         var handler = new ControllerDisconnectedNotificationHandler(
@@ -82,7 +83,8 @@ public class ControllerDisconnectedNotificationHandlerTests
             "ConnectionId",
             "IVAO",
             "YBBB",
-            "BN-ISA_CTR");
+            "BN-ISA_CTR",
+            "1234567");
         controllerManager.AddController(ivaoController);
 
         var handler = new ControllerDisconnectedNotificationHandler(

@@ -5,11 +5,13 @@ public class ControllerInfo(
     string connectionId,
     string flightSimulationNetwork,
     string stationIdentifier,
-    string callsign)
+    string callsign,
+    string vatsimCid)
 {
     public Guid UserId { get; } = userId;
     public string ConnectionId { get; } = connectionId;
     public string FlightSimulationNetwork { get; } = flightSimulationNetwork;
     public string StationIdentifier { get; } = stationIdentifier;
     public string Callsign { get; } = callsign;
+    public string VatsimCid { get; } = vatsimCid;
 }
