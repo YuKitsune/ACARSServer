@@ -10,7 +10,7 @@ using Serilog.Core;
 
 namespace ACARSServer.Tests.Handlers;
 
-public class CpdlcMessageReceivedNotificationHandlerTests
+public class DownlinkReceivedNotificationHandlerTests
 {
     [Fact]
     public async Task Handle_SendsMessageToMatchingControllers()
@@ -38,7 +38,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
         var clientProxy = Substitute.For<IClientProxy>();
         hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);
 
-        var handler = new CpdlcMessageReceivedNotificationHandler(
+        var handler = new DownlinkReceivedNotificationHandler(
             controllerManager,
             hubContext,
             Logger.None);
@@ -49,7 +49,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             CpdlcDownlinkResponseType.ResponseRequired,
             "REQUEST DESCENT");
 
-        var notification = new CpdlcDownlinkMessageReceivedNotification(
+        var notification = new DownlinkReceivedNotification(
             "VATSIM",
             "YBBB",
             downlinkMessage);
@@ -65,7 +65,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
                 ids.Contains("ConnectionId-1")));
 
         await clientProxy.Received(1).SendCoreAsync(
-            "ReceiveCpdlcMessage",
+            "DownlinkReceived",
             Arg.Is<object[]>(args => args.Length == 1 && args[0] == downlinkMessage),
             Arg.Any<CancellationToken>());
     }
@@ -88,7 +88,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
         var clientProxy = Substitute.For<IClientProxy>();
         hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);
 
-        var handler = new CpdlcMessageReceivedNotificationHandler(
+        var handler = new DownlinkReceivedNotificationHandler(
             controllerManager,
             hubContext,
             Logger.None);
@@ -99,7 +99,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             CpdlcDownlinkResponseType.ResponseRequired,
             "REQUEST DESCENT");
 
-        var notification = new CpdlcDownlinkMessageReceivedNotification(
+        var notification = new DownlinkReceivedNotification(
             "VATSIM",
             "YBBB",
             downlinkMessage);
@@ -141,7 +141,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
         var clientProxy = Substitute.For<IClientProxy>();
         hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);
 
-        var handler = new CpdlcMessageReceivedNotificationHandler(
+        var handler = new DownlinkReceivedNotificationHandler(
             controllerManager,
             hubContext,
             Logger.None);
@@ -152,7 +152,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             CpdlcDownlinkResponseType.ResponseRequired,
             "REQUEST DESCENT");
 
-        var notification = new CpdlcDownlinkMessageReceivedNotification(
+        var notification = new DownlinkReceivedNotification(
             "VATSIM",
             "YBBB",
             downlinkMessage);

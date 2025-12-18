@@ -104,7 +104,7 @@ public class ControllerHub : Hub
             controller.StationIdentifier,
             controller.Callsign);
 
-        await _mediator.Send(new SendCpdlcUplinkCommand(userContext, uplinkMessage));
+        await _mediator.Send(new SendUplinkCommand(userContext, uplinkMessage));
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

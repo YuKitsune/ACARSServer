@@ -3,7 +3,7 @@ using MediatR;
 
 namespace ACARSServer.Messages;
 
-public record SendCpdlcUplinkCommand(
+public record SendUplinkCommand(
     UserContext Context,
-    ICpdlcUplink Uplink)
+    IUplinkMessage Uplink)
     : IRequest;

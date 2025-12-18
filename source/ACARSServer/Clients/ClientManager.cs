@@ -1,4 +1,3 @@
-using ACARSServer.Contracts;
 using ACARSServer.Exceptions;
 using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
@@ -181,28 +180,21 @@ public class ClientManager : BackgroundService, IClientManager
         var subscriptionLogger = _logger.ForContext("Network", flightSimulationNetwork).ForContext("Station", stationIdentifier);
         await foreach (var acarsMessage in acarsClient.MessageReader.ReadAllAsync(cancellationToken))
         {
+            // TODO: Make this configurable
+            var publishTimeoutCancellationTokenSource = new CancellationTokenSource();
+            publishTimeoutCancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(10));
+            
             try
             {
-                switch (acarsMessage)
-                {
-                    case ICpdlcDownlink cpdlcDownlink:
-                        await mediator.Publish(
-                            new CpdlcDownlinkMessageReceivedNotification(flightSimulationNetwork, stationIdentifier,
-                                cpdlcDownlink),
-                            cancellationToken);
-                        break;
-
-                    case TelexDownlink telexDownlinkMessage:
-                        await mediator.Publish(
-                            new TelexDownlinkMessageReceivedNotification(flightSimulationNetwork, stationIdentifier,
-                                telexDownlinkMessage),
-                            cancellationToken);
-                        break;
-
-                    default:
-                        subscriptionLogger.Warning("Unsupported message type: {Type}", acarsMessage.GetType());
-                        break;
-                }
+                await mediator.Publish(new DownlinkReceivedNotification(
+                        flightSimulationNetwork,
+                        stationIdentifier,
+                        acarsMessage),
+                    publishTimeoutCancellationTokenSource.Token);
+            }
+            catch (OperationCanceledException) when (publishTimeoutCancellationTokenSource.Token.IsCancellationRequested)
+            {
+                subscriptionLogger.Warning("Timeout handling downlink {Downlink}", acarsMessage);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

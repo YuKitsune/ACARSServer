@@ -6,13 +6,13 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ACARSServer.Handlers;
 
-public class CpdlcMessageReceivedNotificationHandler(
+public class DownlinkReceivedNotificationHandler(
     IControllerManager controllerManager,
     IHubContext<ControllerHub> hubContext,
     ILogger logger)
-    : INotificationHandler<CpdlcDownlinkMessageReceivedNotification>
+    : INotificationHandler<DownlinkReceivedNotification>
 {
-    public async Task Handle(CpdlcDownlinkMessageReceivedNotification notification, CancellationToken cancellationToken)
+    public async Task Handle(DownlinkReceivedNotification notification, CancellationToken cancellationToken)
     {
         var controllers = controllerManager.Controllers
             .Where(c =>
@@ -22,7 +22,7 @@ public class CpdlcMessageReceivedNotificationHandler(
 
         if (!controllers.Any())
         {
-            logger.Information("No controllers found for message from {From}", notification.Downlink.Sender);
+            logger.Information("No controllers found for downlink from {From}", notification.Downlink.Sender);
             return;
         }
 
@@ -31,8 +31,8 @@ public class CpdlcMessageReceivedNotificationHandler(
         //  Plugin needs to ignore messages from flights not assumed.
         await hubContext.Clients
             .Clients(controllers.Select(c => c.ConnectionId))
-            .SendAsync("ReceiveCpdlcMessage", notification.Downlink, cancellationToken);
+            .SendAsync("DownlinkReceived", notification.Downlink, cancellationToken);
 
-        logger.Information("Relayed CPDLC message from {From} to {StationIdentifier}", notification.Downlink.Sender, notification.StationIdentifier);
+        logger.Information("Relayed downlink from {From} to {StationIdentifier}", notification.Downlink.Sender, notification.StationIdentifier);
     }
 }

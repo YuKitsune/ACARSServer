@@ -3,8 +3,8 @@ using MediatR;
 
 namespace ACARSServer.Messages;
 
-public record CpdlcDownlinkMessageReceivedNotification(
+public record DownlinkReceivedNotification(
     string FlightSimulationNetwork,
     string StationIdentifier,
-    ICpdlcDownlink Downlink)
+    IDownlinkMessage Downlink)
     : INotification;

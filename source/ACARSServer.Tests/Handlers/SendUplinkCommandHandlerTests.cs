@@ -6,14 +6,14 @@ using Serilog.Core;
 
 namespace ACARSServer.Tests.Handlers;
 
-public class SendCpdlcUplinkCommandHandlerTests
+public class SendUplinkCommandHandlerTests
 {
     [Fact]
     public async Task Handle_SendsMessageToAcarsClient()
     {
         // Arrange
         var clientManager = new TestClientManager();
-        var handler = new SendCpdlcUplinkCommandHandler(
+        var handler = new SendUplinkCommandHandler(
             clientManager,
             Logger.None);
 
@@ -30,7 +30,7 @@ public class SendCpdlcUplinkCommandHandlerTests
             CpdlcUplinkResponseType.WilcoUnable,
             "CLIMB TO @FL410@");
 
-        var command = new SendCpdlcUplinkCommand(context, message);
+        var command = new SendUplinkCommand(context, message);
 
         // Act
         await handler.Handle(command, CancellationToken.None);
@@ -47,7 +47,7 @@ public class SendCpdlcUplinkCommandHandlerTests
     {
         // Arrange
         var clientManager = new TestClientManager();
-        var handler = new SendCpdlcUplinkCommandHandler(
+        var handler = new SendUplinkCommandHandler(
             clientManager,
             Logger.None);
 
@@ -65,7 +65,7 @@ public class SendCpdlcUplinkCommandHandlerTests
             CpdlcUplinkResponseType.NoResponse,
             "ROGER");
 
-        var command = new SendCpdlcUplinkCommand(context, reply);
+        var command = new SendUplinkCommand(context, reply);
 
         // Act
         await handler.Handle(command, CancellationToken.None);

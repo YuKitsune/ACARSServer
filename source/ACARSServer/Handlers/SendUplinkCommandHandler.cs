@@ -5,10 +5,10 @@ using MediatR;
 
 namespace ACARSServer.Handlers;
 
-public class SendCpdlcUplinkCommandHandler(IClientManager clientManager, ILogger logger)
-    : IRequestHandler<SendCpdlcUplinkCommand>
+public class SendUplinkCommandHandler(IClientManager clientManager, ILogger logger)
+    : IRequestHandler<SendUplinkCommand>
 {
-    public async Task Handle(SendCpdlcUplinkCommand request, CancellationToken cancellationToken)
+    public async Task Handle(SendUplinkCommand request, CancellationToken cancellationToken)
     {
         try
         {
