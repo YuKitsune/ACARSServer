@@ -17,7 +17,7 @@ The server maintains connections to upstream ACARS networks. Each connection sim
 
 This solves a limitation in the Hoppies network where multiple controllers cannot share station IDs, preventing multiple controllers from operating under the same FIR identifier.
 
-<img src="./diagram.png" width="320" />
+<img src="./diagram.png" />
 
 ## Features
 
