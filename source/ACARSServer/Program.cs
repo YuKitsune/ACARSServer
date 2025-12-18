@@ -17,6 +17,7 @@ builder.Services.AddSingleton<IControllerManager, ControllerManager>();
 builder.Services.AddSingleton<IClientManager, ClientManager>();
 builder.Services.AddSingleton<IApiKeyValidator, ApiKeyValidator>();
 builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
+builder.Services.AddHostedService<HoppieHeartbeatService>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
