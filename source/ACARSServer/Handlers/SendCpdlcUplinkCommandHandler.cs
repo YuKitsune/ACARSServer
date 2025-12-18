@@ -1,16 +1,15 @@
 using ACARSServer.Clients;
-using ACARSServer.Contracts;
 using ACARSServer.Messages;
 using MediatR;
 
 namespace ACARSServer.Handlers;
 
-public class SendCpdlcUplinkMessageCommandHandler(
+public class SendCpdlcUplinkCommandHandler(
     IClientManager clientManager,
-    ILogger<SendCpdlcUplinkMessageCommandHandler> logger)
-    : IRequestHandler<SendCpdlcUplinkMessageCommand>
+    ILogger<SendCpdlcUplinkCommandHandler> logger)
+    : IRequestHandler<SendCpdlcUplinkCommand>
 {
-    public async Task Handle(SendCpdlcUplinkMessageCommand request, CancellationToken cancellationToken)
+    public async Task Handle(SendCpdlcUplinkCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -19,11 +18,11 @@ public class SendCpdlcUplinkMessageCommandHandler(
                 request.Context.StationIdentifier,
                 cancellationToken);
         
-            await client.Send(request.Message, cancellationToken);
+            await client.Send(request.Uplink, cancellationToken);
             logger.LogDebug(
                 "Sent CPDLC message from {ControllerCallsign} to {PilotCallsign}",
                 request.Context.Callsign,
-                request.Message.Recipient);
+                request.Uplink.Recipient);
         }
         catch (Exception ex)
         {

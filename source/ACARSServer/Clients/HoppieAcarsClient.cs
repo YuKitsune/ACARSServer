@@ -15,7 +15,7 @@ public class HoppieAcarsClient : IAcarsClient
     readonly IClock _clock;
     readonly ILogger<HoppieAcarsClient> _logger;
     
-    readonly Channel<IAcarsMessage> _messageChannel = Channel.CreateUnbounded<IAcarsMessage>();
+    readonly Channel<IDownlinkMessage> _messageChannel = Channel.CreateUnbounded<IDownlinkMessage>();
     readonly Random _random = Random.Shared;
 
     CancellationTokenSource? _pollCancellationTokenSource;
@@ -24,7 +24,7 @@ public class HoppieAcarsClient : IAcarsClient
 
     bool _disposed;
 
-    public ChannelReader<IAcarsMessage> MessageReader => _messageChannel.Reader;
+    public ChannelReader<IDownlinkMessage> MessageReader => _messageChannel.Reader;
 
     public HoppieAcarsClient(HoppiesConfiguration configuration, HttpClient httpClient, IClock clock, ILogger<HoppieAcarsClient> logger)
     {
@@ -51,13 +51,13 @@ public class HoppieAcarsClient : IAcarsClient
         return Task.CompletedTask;
     }
 
-    public async Task Send(IAcarsMessage message, CancellationToken cancellationToken)
+    public async Task Send(IUplinkMessage message, CancellationToken cancellationToken)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(HoppieAcarsClient));
 
         var messageType = GetMessageType(message);
-        var to = GetTo(message);
+        var to = message.Recipient;
         var packet = GetPacket(message);
 
         var parameters = new Dictionary<string, string>
@@ -102,10 +102,10 @@ public class HoppieAcarsClient : IAcarsClient
 
         if (_pollCancellationTokenSource is not null)
             await _pollCancellationTokenSource.CancelAsync();
-        
+
         if (_pollTask is not null)
             await _pollTask;
-        
+
         _logger.LogInformation(
             "Disconnected {Station} on {Network} from Hoppies ACARS network",
             _configuration.StationIdentifier,
@@ -189,14 +189,14 @@ public class HoppieAcarsClient : IAcarsClient
                 var type = parts[2];
                 var packet = parts.Length > 3 ? string.Join(" ", parts[3..]) : string.Empty;
 
-                var message = type.ToLowerInvariant() switch
+                IDownlinkMessage? message = type.ToLowerInvariant() switch
                 {
-                    "telex" => new TelexDownlinkMessage(from, packet),
-                    "cpdlc" => ParseCpdlcMessage(from, to, packet),
+                    "telex" => new TelexDownlink(from, packet),
+                    "cpdlc" => ParseCpdlcDownlink(from, packet),
                     _ => null
                 };
 
-                if (message != null)
+                if (message is not null)
                 {
                     _messageChannel.Writer.TryWrite(message);
                     _logger.LogDebug("Received {MessageType} from {From} to {To}", type, from, to);
@@ -213,32 +213,30 @@ public class HoppieAcarsClient : IAcarsClient
         }
     }
 
-    static IAcarsMessage ParseCpdlcMessage(string from, string to, string packet)
+    static ICpdlcDownlink ParseCpdlcDownlink(string from, string packet)
     {
         var parts = packet.Split('/');
         if (parts.Length != 6)
-            throw new Exception($"Invalid CPDLC packet: Expected 5 components, got {parts.Length}: \"{packet}\"");
+            throw new Exception($"Invalid CPDLC packet: Expected 6 components, got {parts.Length}: \"{packet}\"");
 
         var messageId = int.Parse(parts[2]);
         int? replyToId = !string.IsNullOrEmpty(parts[3]) ? int.Parse(parts[3]) : null;
         var responseType = parts[4] switch
         {
-            "NE" => CpdlcResponseType.NoResponse,
-            "WU" => CpdlcResponseType.WilcoUnable,
-            "AN" => CpdlcResponseType.AffirmativeNegative,
-            "R" => CpdlcResponseType.Roger,
-            _ => throw new ArgumentOutOfRangeException($"Unexpected CPDLC response type: {parts[4]}")
+            "N" => CpdlcDownlinkResponseType.NoResponse,
+            "Y" => CpdlcDownlinkResponseType.ResponseRequired,
+            _ => throw new ArgumentOutOfRangeException($"Unexpected CPDLC downlink response type: {parts[4]}")
         };
 
         var content = parts[5];
 
         if (replyToId is not null)
         {
-            return new CpdlcDownlinkReply(messageId, from, replyToId.Value, new CpdlcMessage(content, responseType));
+            return new CpdlcDownlinkReply(messageId, from, replyToId.Value, responseType, content);
         }
         else
         {
-            return new CpdlcDownlinkMessage(messageId, from, new CpdlcMessage(content, responseType));
+            return new CpdlcDownlink(messageId, from, responseType, content);
         }
     }
 
@@ -256,46 +254,40 @@ public class HoppieAcarsClient : IAcarsClient
         return TimeSpan.FromSeconds(_random.Next(45, 76));
     }
 
-    static string GetMessageType(IAcarsMessage message) => message switch
+    static string GetMessageType(IUplinkMessage message) => message switch
     {
-        ITelexMessage => "telex",
-        ICpdlcMessage => "cpdlc",
+        TelexUplink => "telex",
+        ICpdlcUplink => "cpdlc",
         _ => throw new ArgumentException($"Unexpected message type: {message.GetType().Name}")
     };
 
-    static string GetTo(IAcarsMessage message) => message switch
+    string GetPacket(IUplinkMessage message) => message switch
     {
-        IUplinkMessage m => m.Recipient,
+        TelexUplink m => UrlEncoder.Default.Encode(m.Content),
+        ICpdlcUplink m => SerializeCpdlcMessage(m),
         _ => throw new ArgumentException($"Unexpected message type: {message.GetType().Name}")
     };
 
-    string GetPacket(IAcarsMessage message) => message switch
-    {
-        ITelexMessage m => UrlEncoder.Default.Encode(m.Content),
-        ICpdlcMessage m => SerializeCpdlcMessage(m),
-        _ => throw new ArgumentException($"Unexpected message type: {message.GetType().Name}")
-    };
-
-    int _messageId = 0;
+    int _messageId;
     
-    string SerializeCpdlcMessage(ICpdlcMessage cpdlcMessage)
+    string SerializeCpdlcMessage(ICpdlcUplink cpdlcMessage)
     {
-        var responseType = cpdlcMessage.Message.ResponseType switch
+        var responseType = cpdlcMessage.ResponseType switch
         {
-            CpdlcResponseType.NoResponse => "NE",
-            CpdlcResponseType.WilcoUnable => "WU",
-            CpdlcResponseType.AffirmativeNegative => "AN",
-            CpdlcResponseType.Roger => "R",
-            _ => throw new ArgumentException($"Unexpected CpdlcResponseType: {cpdlcMessage.Message.ResponseType}")
+            CpdlcUplinkResponseType.NoResponse => "NE",
+            CpdlcUplinkResponseType.WilcoUnable => "WU",
+            CpdlcUplinkResponseType.AffirmativeNegative => "AN",
+            CpdlcUplinkResponseType.Roger => "R",
+            _ => throw new ArgumentException($"Unexpected CpdlcResponseType: {cpdlcMessage.ResponseType}")
         };
 
         var messageId = Interlocked.Increment(ref _messageId);
 
-        var replyToId = cpdlcMessage is ICpdlcReplyMessage cpdlcReplyMessage
+        var replyToId = cpdlcMessage is ICpdlcReply cpdlcReplyMessage
             ? cpdlcReplyMessage.ReplyToMessageId.ToString()
             : string.Empty;
         
-        return $"/data/{messageId}/{replyToId}/{responseType}/{UrlEncoder.Default.Encode(cpdlcMessage.Message.Content)}";
+        return $"/data/{messageId}/{replyToId}/{responseType}/{UrlEncoder.Default.Encode(cpdlcMessage.Content)}";
     }
     
     public async ValueTask DisposeAsync()
@@ -304,10 +296,10 @@ public class HoppieAcarsClient : IAcarsClient
             return;
         
         await Disconnect(CancellationToken.None);
-        
+
         if (_pollTask is not null)
             _pollTask.Dispose();
-        
+
         if (_pollCancellationTokenSource is not null)
             _pollCancellationTokenSource.Dispose();
         

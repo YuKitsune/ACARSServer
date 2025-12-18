@@ -43,10 +43,11 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             hubContext,
             NullLogger<CpdlcMessageReceivedNotificationHandler>.Instance);
 
-        var downlinkMessage = new CpdlcDownlinkMessage(
+        var downlinkMessage = new CpdlcDownlink(
             1,
             "UAL123",
-            new CpdlcMessage("REQUEST DESCENT", CpdlcResponseType.WilcoUnable));
+            CpdlcDownlinkResponseType.ResponseRequired,
+            "REQUEST DESCENT");
 
         var notification = new CpdlcDownlinkMessageReceivedNotification(
             "VATSIM",
@@ -92,10 +93,11 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             hubContext,
             NullLogger<CpdlcMessageReceivedNotificationHandler>.Instance);
 
-        var downlinkMessage = new CpdlcDownlinkMessage(
+        var downlinkMessage = new CpdlcDownlink(
             1,
             "UAL123",
-            new CpdlcMessage("REQUEST DESCENT", CpdlcResponseType.WilcoUnable));
+            CpdlcDownlinkResponseType.ResponseRequired,
+            "REQUEST DESCENT");
 
         var notification = new CpdlcDownlinkMessageReceivedNotification(
             "VATSIM",
@@ -144,10 +146,11 @@ public class CpdlcMessageReceivedNotificationHandlerTests
             hubContext,
             NullLogger<CpdlcMessageReceivedNotificationHandler>.Instance);
 
-        var downlinkMessage = new CpdlcDownlinkMessage(
+        var downlinkMessage = new CpdlcDownlink(
             1,
             "UAL123",
-            new CpdlcMessage("REQUEST DESCENT", CpdlcResponseType.WilcoUnable));
+            CpdlcDownlinkResponseType.ResponseRequired,
+            "REQUEST DESCENT");
 
         var notification = new CpdlcDownlinkMessageReceivedNotification(
             "VATSIM",

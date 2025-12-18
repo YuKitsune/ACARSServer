@@ -130,21 +130,14 @@ public class ClientManager : IAsyncDisposable, IClientManager
             {
                 switch (acarsMessage)
                 {
-                    case CpdlcDownlinkMessage cpdlcDownlinkMessage:
+                    case ICpdlcDownlink cpdlcDownlink:
                         await mediator.Publish(
                             new CpdlcDownlinkMessageReceivedNotification(flightSimulationNetwork, stationIdentifier,
-                                cpdlcDownlinkMessage),
+                                cpdlcDownlink),
                             cancellationToken);
                         break;
 
-                    case CpdlcDownlinkReply cpdlcDownlinkReply:
-                        await mediator.Publish(
-                            new CpdlcDownlinkReplyReceivedNotification(flightSimulationNetwork, stationIdentifier,
-                                cpdlcDownlinkReply),
-                            cancellationToken);
-                        break;
-
-                    case TelexDownlinkMessage telexDownlinkMessage:
+                    case TelexDownlink telexDownlinkMessage:
                         await mediator.Publish(
                             new TelexDownlinkMessageReceivedNotification(flightSimulationNetwork, stationIdentifier,
                                 telexDownlinkMessage),

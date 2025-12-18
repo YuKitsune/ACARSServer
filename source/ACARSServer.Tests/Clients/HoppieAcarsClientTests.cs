@@ -1,6 +1,7 @@
 using System.Net;
 using ACARSServer.Clients;
 using ACARSServer.Contracts;
+using ACARSServer.Messages;
 using ACARSServer.Tests.Mocks;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -59,7 +60,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         await client.Connect(CancellationToken.None);
 
-        var message = new TelexUplinkMessage("UAL123", "THIS IS A TEST MESSAGE");
+        var message = new TelexUplink("UAL123", "THIS IS A TEST MESSAGE");
 
         // Act
         await client.Send(message, CancellationToken.None);
@@ -93,10 +94,11 @@ public class HoppieAcarsClientTests : IDisposable
 
         await client.Connect(CancellationToken.None);
 
-        var message = new CpdlcUplinkMessage(
+        var message = new CpdlcUplink(
             1,
             "UAL123",
-            new CpdlcMessage("CLIMB TO @FL350@", CpdlcResponseType.WilcoUnable));
+            CpdlcUplinkResponseType.WilcoUnable,
+            "CLIMB TO @FL350@");
 
         // Act
         await client.Send(message, CancellationToken.None);
@@ -129,7 +131,8 @@ public class HoppieAcarsClientTests : IDisposable
             2,
             "UAL123",
             5,
-            new CpdlcMessage("ROGER", CpdlcResponseType.NoResponse));
+            CpdlcUplinkResponseType.NoResponse,
+            "ROGER");
 
         // Act
         await client.Send(reply, CancellationToken.None);
@@ -147,11 +150,11 @@ public class HoppieAcarsClientTests : IDisposable
     }
 
     [Theory]
-    [InlineData(CpdlcResponseType.NoResponse, "NE")]
-    [InlineData(CpdlcResponseType.WilcoUnable, "WU")]
-    [InlineData(CpdlcResponseType.AffirmativeNegative, "AN")]
-    [InlineData(CpdlcResponseType.Roger, "R")]
-    public async Task Send_CpdlcMessage_MapsResponseTypesCorrectly(CpdlcResponseType responseType, string expectedCode)
+    [InlineData(CpdlcUplinkResponseType.NoResponse, "NE")]
+    [InlineData(CpdlcUplinkResponseType.WilcoUnable, "WU")]
+    [InlineData(CpdlcUplinkResponseType.AffirmativeNegative, "AN")]
+    [InlineData(CpdlcUplinkResponseType.Roger, "R")]
+    public async Task Send_CpdlcMessage_MapsResponseTypesCorrectly(CpdlcUplinkResponseType uplinkResponseType, string expectedCode)
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
@@ -160,10 +163,11 @@ public class HoppieAcarsClientTests : IDisposable
 
         await client.Connect(CancellationToken.None);
 
-        var message = new CpdlcUplinkMessage(
+        var message = new CpdlcUplink(
             1,
             "UAL123",
-            new CpdlcMessage("TEST", responseType));
+            uplinkResponseType,
+            "TEST");
 
         // Act
         await client.Send(message, CancellationToken.None);
@@ -193,10 +197,11 @@ public class HoppieAcarsClientTests : IDisposable
 
         await client.Connect(CancellationToken.None);
 
-        var message = new CpdlcUplinkMessage(
+        var message = new CpdlcUplink(
             1,
             "UAL123",
-            new CpdlcMessage("CLIMB TO @FL350@", CpdlcResponseType.WilcoUnable));
+            CpdlcUplinkResponseType.WilcoUnable,
+            "CLIMB TO @FL350@");
 
         // Act
         await client.Send(message, CancellationToken.None);
@@ -230,7 +235,7 @@ public class HoppieAcarsClientTests : IDisposable
         var message = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var telexMessage = Assert.IsType<TelexDownlinkMessage>(message);
+        var telexMessage = Assert.IsType<TelexDownlink>(message);
         Assert.Equal("UAL123", telexMessage.Sender);
         Assert.Equal("THIS IS A TEST", telexMessage.Content);
     }
@@ -240,7 +245,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, "UAL123 YBBB cpdlc /data/5//WU/REQUEST DESCENT");
+        httpHandler.QueueResponse(HttpStatusCode.OK, "UAL123 YBBB cpdlc /data/5//Y/REQUEST DESCENT");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
 
@@ -252,11 +257,11 @@ public class HoppieAcarsClientTests : IDisposable
         var message = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var cpdlcMessage = Assert.IsType<CpdlcDownlinkMessage>(message);
+        var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message);
         Assert.Equal("UAL123", cpdlcMessage.Sender);
         Assert.Equal(5, cpdlcMessage.MessageId);
-        Assert.Equal("REQUEST DESCENT", cpdlcMessage.Message.Content);
-        Assert.Equal(CpdlcResponseType.WilcoUnable, cpdlcMessage.Message.ResponseType);
+        Assert.Equal("REQUEST DESCENT", cpdlcMessage.Content);
+        Assert.Equal(CpdlcDownlinkResponseType.ResponseRequired, cpdlcMessage.ResponseType);
     }
 
     [Fact]
@@ -264,7 +269,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, "UAL123 YBBB cpdlc /data/7/3/R/WILCO");
+        httpHandler.QueueResponse(HttpStatusCode.OK, "UAL123 YBBB cpdlc /data/7/3/N/WILCO");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
 
@@ -280,8 +285,8 @@ public class HoppieAcarsClientTests : IDisposable
         Assert.Equal("UAL123", cpdlcReply.Sender);
         Assert.Equal(7, cpdlcReply.MessageId);
         Assert.Equal(3, cpdlcReply.ReplyToMessageId);
-        Assert.Equal("WILCO", cpdlcReply.Message.Content);
-        Assert.Equal(CpdlcResponseType.Roger, cpdlcReply.Message.ResponseType);
+        Assert.Equal("WILCO", cpdlcReply.Content);
+        Assert.Equal(CpdlcDownlinkResponseType.NoResponse, cpdlcReply.ResponseType);
     }
 
     [Fact]
@@ -289,7 +294,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        var response = "UAL123 YBBB telex HELLO\nDAL456 YBBB cpdlc /data/1//WU/REQUEST CLIMB";
+        var response = "UAL123 YBBB telex HELLO\nDAL456 YBBB cpdlc /data/1//Y/REQUEST CLIMB";
         httpHandler.QueueResponse(HttpStatusCode.OK, response);
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
@@ -303,48 +308,39 @@ public class HoppieAcarsClientTests : IDisposable
         var message2 = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var telexMessage = Assert.IsType<TelexDownlinkMessage>(message1);
+        var telexMessage = Assert.IsType<TelexDownlink>(message1);
         Assert.Equal("UAL123", telexMessage.Sender);
         Assert.Equal("HELLO", telexMessage.Content);
 
-        var cpdlcMessage = Assert.IsType<CpdlcDownlinkMessage>(message2);
+        var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message2);
         Assert.Equal("DAL456", cpdlcMessage.Sender);
-        Assert.Equal("REQUEST CLIMB", cpdlcMessage.Message.Content);
+        Assert.Equal("REQUEST CLIMB", cpdlcMessage.Content);
     }
 
-    [Fact]
-    public async Task Poll_ResponseTypeCodes_MapCorrectly()
+    [Theory]
+    [InlineData("N", CpdlcDownlinkResponseType.NoResponse)]
+    [InlineData("Y", CpdlcDownlinkResponseType.ResponseRequired)]
+    public async Task Poll_ResponseTypeCodes_MapCorrectly(string code, CpdlcDownlinkResponseType expectedType)
     {
-        var testCases = new[]
-        {
-            ("NE", CpdlcResponseType.NoResponse),
-            ("WU", CpdlcResponseType.WilcoUnable),
-            ("AN", CpdlcResponseType.AffirmativeNegative),
-            ("R", CpdlcResponseType.Roger)
-        };
+        // Arrange
+        var httpHandler = new TestHttpMessageHandler();
+        httpHandler.QueueResponse(HttpStatusCode.OK, $"UAL123 YBBB cpdlc /data/1//{code}/TEST");
+        httpHandler.SetResponse(HttpStatusCode.OK, "ok");
+        var client = CreateClient(httpHandler);
 
-        foreach (var (code, expectedType) in testCases)
-        {
-            // Arrange
-            var httpHandler = new TestHttpMessageHandler();
-            httpHandler.QueueResponse(HttpStatusCode.OK, $"UAL123 YBBB cpdlc /data/1//{code}/TEST");
-            httpHandler.SetResponse(HttpStatusCode.OK, "ok");
-            var client = CreateClient(httpHandler);
+        // Act
+        await client.Connect(CancellationToken.None);
+        await Task.Delay(100); // Give polling task time to start
 
-            // Act
-            await client.Connect(CancellationToken.None);
-            await Task.Delay(100); // Give polling task time to start
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var message = await client.MessageReader.ReadAsync(cts.Token);
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var message = await client.MessageReader.ReadAsync(cts.Token);
+        // Assert
+        var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message);
+        Assert.Equal(expectedType, cpdlcMessage.ResponseType);
 
-            // Assert
-            var cpdlcMessage = Assert.IsType<CpdlcDownlinkMessage>(message);
-            Assert.Equal(expectedType, cpdlcMessage.Message.ResponseType);
-
-            await client.DisposeAsync();
-            _clients.Remove(client);
-        }
+        await client.DisposeAsync();
+        _clients.Remove(client);
     }
 
     private async Task<Dictionary<string, string>> ParseFormDataFromRequest(HttpRequestMessage request)

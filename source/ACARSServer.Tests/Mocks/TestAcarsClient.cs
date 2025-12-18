@@ -6,18 +6,18 @@ namespace ACARSServer.Tests.Mocks;
 
 public class TestAcarsClient : IAcarsClient
 {
-    private readonly Channel<IAcarsMessage> _channel = Channel.CreateUnbounded<IAcarsMessage>();
+    private readonly Channel<IDownlinkMessage> _channel = Channel.CreateUnbounded<IDownlinkMessage>();
 
-    public ChannelReader<IAcarsMessage> MessageReader => _channel.Reader;
+    public ChannelReader<IDownlinkMessage> MessageReader => _channel.Reader;
 
-    public List<IAcarsMessage> SentMessages { get; } = new();
+    public List<IUplinkMessage> SentMessages { get; } = new();
 
     public Task Connect(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
-    public Task Send(IAcarsMessage message, CancellationToken cancellationToken)
+    public Task Send(IUplinkMessage message, CancellationToken cancellationToken)
     {
         SentMessages.Add(message);
         return Task.CompletedTask;

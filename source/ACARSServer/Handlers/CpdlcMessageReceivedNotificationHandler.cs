@@ -35,7 +35,7 @@ public class CpdlcMessageReceivedNotificationHandler : INotificationHandler<Cpdl
 
         if (!controllers.Any())
         {
-            _logger.LogInformation("No controllers found for message from {From}", notification.Message.Sender);
+            _logger.LogInformation("No controllers found for message from {From}", notification.Downlink.Sender);
             return;
         }
 
@@ -44,8 +44,8 @@ public class CpdlcMessageReceivedNotificationHandler : INotificationHandler<Cpdl
         //  Plugin needs to ignore messages from flights not assumed.
         await _hubContext.Clients
             .Clients(controllers.Select(c => c.ConnectionId))
-            .SendAsync("ReceiveCpdlcMessage", notification.Message, cancellationToken);
+            .SendAsync("ReceiveCpdlcMessage", notification.Downlink, cancellationToken);
 
-        _logger.LogInformation("Relayed CPDLC message from {From} to {StationIdentifier}", notification.Message.Sender, notification.StationIdentifier);
+        _logger.LogInformation("Relayed CPDLC message from {From} to {StationIdentifier}", notification.Downlink.Sender, notification.StationIdentifier);
     }
 }

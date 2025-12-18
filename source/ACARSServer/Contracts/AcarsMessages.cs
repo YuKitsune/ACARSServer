@@ -2,22 +2,26 @@ using ACARSServer.Clients;
 
 namespace ACARSServer.Contracts;
 
-public interface IAcarsMessage;
-
 public interface IUplinkMessage
 {
     string Recipient { get; }
 }
 
-public interface ITelexMessage : IAcarsMessage
+public interface IDownlinkMessage
 {
-    public string Content { get; }
+    string Sender { get; }
 }
 
-public record TelexUplinkMessage(string Recipient, string Content) : ITelexMessage, IUplinkMessage;
-public record TelexDownlinkMessage(string Sender, string Content) : ITelexMessage;
+public record TelexUplink(string Recipient, string Content) : IUplinkMessage;
+public record TelexDownlink(string Sender, string Content) : IDownlinkMessage;
 
-public enum CpdlcResponseType
+public enum CpdlcDownlinkResponseType
+{
+    NoResponse,
+    ResponseRequired
+}
+
+public enum CpdlcUplinkResponseType
 {
     NoResponse,
     WilcoUnable,
@@ -25,20 +29,26 @@ public enum CpdlcResponseType
     Roger
 }
 
-public interface ICpdlcMessage : IAcarsMessage
+public interface ICpdlcUplink : IUplinkMessage
 {
-    public CpdlcMessage Message { get; }
+    CpdlcUplinkResponseType ResponseType { get; } 
+    string Content { get; }
 }
 
-public interface ICpdlcReplyMessage : ICpdlcMessage
+public interface ICpdlcDownlink : IDownlinkMessage
+{
+    CpdlcDownlinkResponseType ResponseType { get; }  
+    string Content { get; }
+}
+
+public interface ICpdlcReply
 {
     public int ReplyToMessageId { get; }
 }
 
-public record CpdlcUplinkMessage(int MessageId, string Recipient, CpdlcMessage Message) : ICpdlcMessage, IUplinkMessage;
-public record CpdlcUplinkReply(int MessageId, string Recipient, int ReplyToMessageId, CpdlcMessage Message) : ICpdlcMessage, ICpdlcReplyMessage, IUplinkMessage;
+public record CpdlcUplink(int MessageId, string Recipient, CpdlcUplinkResponseType ResponseType, string Content) : ICpdlcUplink;
+public record CpdlcUplinkReply(int MessageId, string Recipient, int ReplyToMessageId, CpdlcUplinkResponseType ResponseType, string Content) : ICpdlcUplink, ICpdlcReply;
 
-public record CpdlcDownlinkMessage(int MessageId, string Sender, CpdlcMessage Message) : ICpdlcMessage;
-public record CpdlcDownlinkReply(int MessageId, string Sender, int ReplyToMessageId, CpdlcMessage Message) : ICpdlcMessage, ICpdlcReplyMessage;
+public record CpdlcDownlink(int MessageId, string Sender, CpdlcDownlinkResponseType ResponseType, string Content) : ICpdlcDownlink;
+public record CpdlcDownlinkReply(int MessageId, string Sender, int ReplyToMessageId, CpdlcDownlinkResponseType ResponseType, string Content) : ICpdlcDownlink, ICpdlcReply;
 
-public record CpdlcMessage(string Content, CpdlcResponseType ResponseType);

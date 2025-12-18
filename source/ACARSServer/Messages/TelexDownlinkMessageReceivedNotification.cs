@@ -6,5 +6,5 @@ namespace ACARSServer.Messages;
 public record TelexDownlinkMessageReceivedNotification(
     string FlightSimulationNetwork,
     string StationIdentifier,
-    TelexDownlinkMessage Message)
+    TelexDownlink Downlink)
     : INotification;

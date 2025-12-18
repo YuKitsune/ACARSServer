@@ -87,7 +87,7 @@ public class ControllerHub : Hub
         await base.OnConnectedAsync();
     }
 
-    public async Task SendCpdlcMessage(CpdlcUplinkMessage uplinkMessage)
+    public async Task SendCpdlcUplink(ICpdlcUplink uplinkMessage)
     {
         var controller = _controllerManager.GetController(Context.ConnectionId);
         if (controller is null)
@@ -103,26 +103,7 @@ public class ControllerHub : Hub
             controller.StationIdentifier,
             controller.Callsign);
 
-        await _mediator.Send(new SendCpdlcUplinkMessageCommand(userContext, uplinkMessage));
-    }
-
-    public async Task SendCpdlcReply(CpdlcUplinkReply uplinkReply)
-    {
-        var controller = _controllerManager.GetController(Context.ConnectionId);
-        if (controller is null)
-        {
-            _logger.LogWarning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
-            return;
-        }
-
-        var userContext = new UserContext(
-            controller.UserId,
-            controller.ConnectionId,
-            controller.FlightSimulationNetwork,
-            controller.StationIdentifier,
-            controller.Callsign);
-
-        await _mediator.Send(new SendCpdlcUplinkReplyCommand(userContext, uplinkReply));
+        await _mediator.Send(new SendCpdlcUplinkCommand(userContext, uplinkMessage));
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
