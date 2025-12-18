@@ -88,7 +88,7 @@ public class ControllerHub : Hub
         await base.OnConnectedAsync();
     }
 
-    public async Task SendCpdlcUplink(ICpdlcUplink uplinkMessage)
+    public async Task SendUplink(IUplinkMessage uplinkMessage)
     {
         var controller = _controllerManager.GetController(Context.ConnectionId);
         if (controller is null)
