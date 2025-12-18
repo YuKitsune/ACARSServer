@@ -4,9 +4,37 @@ using ACARSServer.Hubs;
 using ACARSServer.Infrastructure;
 using ACARSServer.Model;
 using ACARSServer.Services;
+using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 
+// Load .env file in development only
+if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+{
+    // Search for .env file in current directory and parent directories up to git root or filesystem root
+    var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
+    while (currentDir != null)
+    {
+        var envPath = Path.Combine(currentDir.FullName, ".env");
+        if (File.Exists(envPath))
+        {
+            Env.Load(envPath);
+            break;
+        }
+
+        // Stop at git root
+        if (Directory.Exists(Path.Combine(currentDir.FullName, ".git")))
+        {
+            break;
+        }
+
+        currentDir = currentDir.Parent;
+    }
+}
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Add environment variables to configuration (loaded from .env)
+builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")

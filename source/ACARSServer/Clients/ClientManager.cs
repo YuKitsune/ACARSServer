@@ -1,6 +1,5 @@
 using ACARSServer.Contracts;
 using ACARSServer.Exceptions;
-using ACARSServer.Extensions;
 using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
 using MediatR;
@@ -14,7 +13,7 @@ public interface IClientManager
 
 public class ClientManager : BackgroundService, IClientManager
 {
-    readonly HoppiesConfiguration[] _hoppieConfigurations;
+    readonly AcarsConfiguration[] _acarsConfigurations;
     readonly SemaphoreSlim _semaphoreSlim = new(1, 1);
     readonly Dictionary<string, AcarsClientHandle> _clients = [];
     readonly IClock _clock;
@@ -29,8 +28,25 @@ public class ClientManager : BackgroundService, IClientManager
         IClock clock,
         ILogger<ClientManager> logger)
     {
-        var hoppiesConfigurationSection = configuration.GetSection("Hoppies");
-        _hoppieConfigurations = hoppiesConfigurationSection.Get<HoppiesConfiguration[]>() ?? [];
+        var acarsConfigurationSection = configuration.GetSection("Acars");
+        var configurationList = new List<AcarsConfiguration>();
+
+        foreach (var section in acarsConfigurationSection.GetChildren())
+        {
+            var type = section["Type"];
+            var config = type switch
+            {
+                "Hoppie" => section.Get<HoppiesConfiguration>(),
+                _ => throw new NotSupportedException($"ACARS configuration type '{type}' is not supported")
+            };
+
+            if (config is not null)
+            {
+                configurationList.Add(config);
+            }
+        }
+
+        _acarsConfigurations = configurationList.ToArray();
 
         _loggerFactory = loggerFactory;
         _mediator = mediator;
@@ -40,9 +56,9 @@ public class ClientManager : BackgroundService, IClientManager
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Starting ACARS client manager with {Count} configurations", _hoppieConfigurations.Length);
+        _logger.LogInformation("Starting ACARS client manager with {Count} configurations", _acarsConfigurations.Length);
 
-        foreach (var config in _hoppieConfigurations)
+        foreach (var config in _acarsConfigurations)
         {
             await CreateClientWithRetry(config.FlightSimulationNetwork, config.StationIdentifier, stoppingToken);
         }
@@ -121,18 +137,15 @@ public class ClientManager : BackgroundService, IClientManager
 
     async Task<AcarsClientHandle> CreateAcarsClient(string flightSimulationNetwork, string stationId, CancellationToken cancellationToken)
     {
-        var configuration = _hoppieConfigurations.FirstOrDefault(c => c.FlightSimulationNetwork == flightSimulationNetwork && c.StationIdentifier == stationId);
+        var configuration = _acarsConfigurations.FirstOrDefault(c => c.FlightSimulationNetwork == flightSimulationNetwork && c.StationIdentifier == stationId);
         if (configuration is null)
             throw new ConfigurationNotFoundException(flightSimulationNetwork, stationId);
-        
-        var httpClient = new HttpClient();
-        httpClient.BaseAddress = configuration.Url;
-            
-        var acarsClient = new HoppieAcarsClient(
-            configuration,
-            httpClient,
-            _clock,
-            _loggerFactory.CreateLogger<HoppieAcarsClient>());
+
+        IAcarsClient acarsClient = configuration switch
+        {
+            HoppiesConfiguration hoppieConfig => CreateHoppieClient(hoppieConfig),
+            _ => throw new NotSupportedException($"ACARS configuration type {configuration.GetType().Name} is not supported")
+        };
 
         var subscribeTaskCancellationSource = new CancellationTokenSource();
         var subscribeTask = Subscribe(
@@ -145,13 +158,25 @@ public class ClientManager : BackgroundService, IClientManager
         var acarsClientHandle = new AcarsClientHandle(acarsClient, subscribeTask, subscribeTaskCancellationSource);
 
         await acarsClient.Connect(cancellationToken);
-            
+
         _logger.LogInformation(
-            "Subscribed to Hoppies ACARS messages for {Network} to {StationIdentifier}",
+            "Connected to ACARS network for {Network}/{StationIdentifier}",
             configuration.FlightSimulationNetwork,
             configuration.StationIdentifier);
-        
+
         return acarsClientHandle;
+    }
+
+    HoppieAcarsClient CreateHoppieClient(HoppiesConfiguration configuration)
+    {
+        var httpClient = new HttpClient();
+        httpClient.BaseAddress = configuration.Url;
+
+        return new HoppieAcarsClient(
+            configuration,
+            httpClient,
+            _clock,
+            _loggerFactory.CreateLogger<HoppieAcarsClient>());
     }
 
     async Task Subscribe(string flightSimulationNetwork, string stationIdentifier, IAcarsClient acarsClient, IMediator mediator, CancellationToken cancellationToken)

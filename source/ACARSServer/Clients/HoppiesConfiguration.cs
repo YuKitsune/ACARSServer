@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ACARSServer.Clients;
 
 public interface IAcarsNetworkConfiguration
@@ -6,10 +8,16 @@ public interface IAcarsNetworkConfiguration
     string StationIdentifier { get; }
 }
 
-public class HoppiesConfiguration : IAcarsNetworkConfiguration
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "Type")]
+[JsonDerivedType(typeof(HoppiesConfiguration), "Hoppie")]
+public abstract class AcarsConfiguration : IAcarsNetworkConfiguration
 {
     public required string FlightSimulationNetwork { get; init; }
-    public required string StationIdentifier { get; init; } // i.e. YMMM
+    public required string StationIdentifier { get; init; }
+}
+
+public class HoppiesConfiguration : AcarsConfiguration
+{
     public required Uri Url { get; init; }
     public required string AuthenticationCode { get; init; }
 }
