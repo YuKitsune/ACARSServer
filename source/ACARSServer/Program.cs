@@ -7,6 +7,7 @@ using ACARSServer.Services;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Events;
 
 // Load .env file in development only
 if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
@@ -38,8 +39,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 // Configure Serilog early
+var logLevel = Enum.TryParse<LogEventLevel>(
+    builder.Configuration["Logging:Level"],
+    true,
+    out var level) ? level : LogEventLevel.Information;
+
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
+    .MinimumLevel.Is(logLevel)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .WriteTo.Console()
     .CreateLogger();
 
 builder.Host.UseSerilog();
@@ -61,7 +70,6 @@ builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
-builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
