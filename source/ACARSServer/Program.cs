@@ -48,7 +48,8 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Is(logLevel)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-    .WriteTo.Console()
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
     .CreateLogger();
 
 builder.Host.UseSerilog();
