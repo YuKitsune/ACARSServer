@@ -3,7 +3,7 @@ using ACARSServer.Clients;
 using ACARSServer.Contracts;
 using ACARSServer.Messages;
 using ACARSServer.Tests.Mocks;
-using Microsoft.Extensions.Logging.Abstractions;
+using Serilog.Core;
 
 namespace ACARSServer.Tests.Clients;
 
@@ -45,7 +45,7 @@ public class HoppieAcarsClientTests : IDisposable
             _configuration,
             httpClient,
             clock ?? new TestClock(),
-            NullLogger<HoppieAcarsClient>.Instance);
+            Logger.None);
         _clients.Add(client);
         return client;
     }

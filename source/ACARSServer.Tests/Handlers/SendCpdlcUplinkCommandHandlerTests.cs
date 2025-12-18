@@ -2,7 +2,7 @@ using ACARSServer.Contracts;
 using ACARSServer.Handlers;
 using ACARSServer.Messages;
 using ACARSServer.Tests.Mocks;
-using Microsoft.Extensions.Logging.Abstractions;
+using Serilog.Core;
 
 namespace ACARSServer.Tests.Handlers;
 
@@ -15,7 +15,7 @@ public class SendCpdlcUplinkCommandHandlerTests
         var clientManager = new TestClientManager();
         var handler = new SendCpdlcUplinkCommandHandler(
             clientManager,
-            NullLogger<SendCpdlcUplinkCommandHandler>.Instance);
+            Logger.None);
 
         var context = new UserContext(
             Guid.NewGuid(),
@@ -49,7 +49,7 @@ public class SendCpdlcUplinkCommandHandlerTests
         var clientManager = new TestClientManager();
         var handler = new SendCpdlcUplinkCommandHandler(
             clientManager,
-            NullLogger<SendCpdlcUplinkCommandHandler>.Instance);
+            Logger.None);
 
         var context = new UserContext(
             Guid.NewGuid(),

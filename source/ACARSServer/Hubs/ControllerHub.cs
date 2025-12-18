@@ -5,24 +5,25 @@ using ACARSServer.Services;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 
+
 namespace ACARSServer.Hubs;
 
 public class ControllerHub : Hub
 {
     private readonly IControllerManager _controllerManager;
     private readonly IMediator _mediator;
-    private readonly ILogger<ControllerHub> _logger;
+    private readonly ILogger _logger;
     private readonly IApiKeyValidator _apiKeyValidator;
 
     public ControllerHub(
         IControllerManager controllerManager,
         IMediator mediator,
-        ILogger<ControllerHub> logger,
+        ILogger logger,
         IApiKeyValidator apiKeyValidator)
     {
         _controllerManager = controllerManager;
         _mediator = mediator;
-        _logger = logger;
+        _logger = logger.ForContext<ControllerHub>();
         _apiKeyValidator = apiKeyValidator;
     }
 
@@ -59,7 +60,7 @@ public class ControllerHub : Hub
         var validationResult = await _apiKeyValidator.ValidateAsync(apiKey);
         if (validationResult is null)
         {
-            _logger.LogWarning("Invalid API key attempt from {ConnectionId}", Context.ConnectionId);
+            _logger.Warning("Invalid API key attempt from {ConnectionId}", Context.ConnectionId);
             throw new HubException("Invalid API key");
         }
 
@@ -73,7 +74,7 @@ public class ControllerHub : Hub
 
         _controllerManager.AddController(controller);
 
-        _logger.LogInformation(
+        _logger.Information(
             "Controller connected: {Callsign} (VATSIM CID: {VatsimCid}) on {Network}/{StationId} (ConnectionId: {ConnectionId})",
             callsign, validationResult.VatsimCid, network, stationId, Context.ConnectionId);
 
@@ -92,7 +93,7 @@ public class ControllerHub : Hub
         var controller = _controllerManager.GetController(Context.ConnectionId);
         if (controller is null)
         {
-            _logger.LogWarning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
+            _logger.Warning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
             return;
         }
 
@@ -112,7 +113,7 @@ public class ControllerHub : Hub
         if (controller is not null)
         {
             _controllerManager.RemoveController(Context.ConnectionId);
-            _logger.LogInformation(
+            _logger.Information(
                 "Controller disconnected: {Callsign} (ConnectionId: {ConnectionId})",
                 controller.Callsign, Context.ConnectionId);
 

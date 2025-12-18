@@ -2,11 +2,10 @@ using ACARSServer.Clients;
 using ACARSServer.Messages;
 using MediatR;
 
+
 namespace ACARSServer.Handlers;
 
-public class SendCpdlcUplinkCommandHandler(
-    IClientManager clientManager,
-    ILogger<SendCpdlcUplinkCommandHandler> logger)
+public class SendCpdlcUplinkCommandHandler(IClientManager clientManager, ILogger logger)
     : IRequestHandler<SendCpdlcUplinkCommand>
 {
     public async Task Handle(SendCpdlcUplinkCommand request, CancellationToken cancellationToken)
@@ -19,14 +18,14 @@ public class SendCpdlcUplinkCommandHandler(
                 cancellationToken);
 
             await client.Send(request.Uplink, cancellationToken);
-            logger.LogDebug(
+            logger.Information(
                 "Sent CPDLC message from {ControllerCallsign} to {PilotCallsign}",
                 request.Context.Callsign,
                 request.Uplink.Recipient);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex ,"Failed to send CPDLC message");
+            logger.Error(ex, "Failed to send CPDLC message");
         }
     }
 }

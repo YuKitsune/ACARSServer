@@ -17,16 +17,14 @@ public class ClientManager : BackgroundService, IClientManager
     readonly SemaphoreSlim _semaphoreSlim = new(1, 1);
     readonly Dictionary<string, AcarsClientHandle> _clients = [];
     readonly IClock _clock;
-    readonly ILoggerFactory _loggerFactory;
+    readonly ILogger _logger;
     readonly IMediator _mediator;
-    readonly ILogger<ClientManager> _logger;
 
     public ClientManager(
         IConfiguration configuration,
-        ILoggerFactory loggerFactory,
         IMediator mediator,
         IClock clock,
-        ILogger<ClientManager> logger)
+        ILogger logger)
     {
         var acarsConfigurationSection = configuration.GetSection("Acars");
         var configurationList = new List<AcarsConfiguration>();
@@ -48,22 +46,21 @@ public class ClientManager : BackgroundService, IClientManager
 
         _acarsConfigurations = configurationList.ToArray();
 
-        _loggerFactory = loggerFactory;
         _mediator = mediator;
         _clock = clock;
-        _logger = logger;
+        _logger = logger.ForContext<ClientManager>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Starting ACARS client manager with {Count} configurations", _acarsConfigurations.Length);
+        _logger.Information("Starting ACARS client manager with {Count} configurations", _acarsConfigurations.Length);
 
         foreach (var config in _acarsConfigurations)
         {
             await CreateClientWithRetry(config.FlightSimulationNetwork, config.StationIdentifier, stoppingToken);
         }
 
-        _logger.LogInformation("All ACARS clients initialized");
+        _logger.Information("All ACARS clients initialized");
 
         try
         {
@@ -71,7 +68,7 @@ public class ClientManager : BackgroundService, IClientManager
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            _logger.LogInformation("Stopping ACARS client manager");
+            _logger.Information("Stopping ACARS client manager");
         }
     }
 
@@ -89,7 +86,7 @@ public class ClientManager : BackgroundService, IClientManager
                 var key = CreateKey(flightSimulationNetwork, stationId);
                 _clients.Add(key, acarsClientHandle);
 
-                _logger.LogInformation(
+                _logger.Information(
                     "Successfully created ACARS client for {Network}/{StationId}",
                     flightSimulationNetwork,
                     stationId);
@@ -98,7 +95,7 @@ public class ClientManager : BackgroundService, IClientManager
             }
             catch (Exception ex) when (attempt < maxRetries - 1)
             {
-                _logger.LogWarning(
+                _logger.Warning(
                     ex,
                     "Failed to create ACARS client for {Network}/{StationId} (attempt {Attempt}/{MaxRetries}). Retrying in {Delay}",
                     flightSimulationNetwork,
@@ -112,7 +109,7 @@ public class ClientManager : BackgroundService, IClientManager
             }
             catch (Exception ex)
             {
-                _logger.LogError(
+                _logger.Error(
                     ex,
                     "Failed to create ACARS client for {Network}/{StationId} after {MaxRetries} attempts. Client will not be available",
                     flightSimulationNetwork,
@@ -159,7 +156,7 @@ public class ClientManager : BackgroundService, IClientManager
 
         await acarsClient.Connect(cancellationToken);
 
-        _logger.LogInformation(
+        _logger.Information(
             "Connected to ACARS network for {Network}/{StationIdentifier}",
             configuration.FlightSimulationNetwork,
             configuration.StationIdentifier);
@@ -176,11 +173,12 @@ public class ClientManager : BackgroundService, IClientManager
             configuration,
             httpClient,
             _clock,
-            _loggerFactory.CreateLogger<HoppieAcarsClient>());
+            _logger.ForContext<HoppieAcarsClient>());
     }
 
     async Task Subscribe(string flightSimulationNetwork, string stationIdentifier, IAcarsClient acarsClient, IMediator mediator, CancellationToken cancellationToken)
     {
+        var subscriptionLogger = _logger.ForContext("Network", flightSimulationNetwork).ForContext("Station", stationIdentifier);
         await foreach (var acarsMessage in acarsClient.MessageReader.ReadAllAsync(cancellationToken))
         {
             try
@@ -202,17 +200,17 @@ public class ClientManager : BackgroundService, IClientManager
                         break;
 
                     default:
-                        _logger.LogWarning("Unsupported message type: {Type}", acarsMessage.GetType());
+                        subscriptionLogger.Warning("Unsupported message type: {Type}", acarsMessage.GetType());
                         break;
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Subscription canceled");
+                subscriptionLogger.Information("Subscription canceled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to relay {MessageType}", acarsMessage.GetType());
+                subscriptionLogger.Error(ex, "Failed to relay {MessageType}", acarsMessage.GetType());
             }
         }
     }
@@ -238,7 +236,7 @@ public class ClientManager : BackgroundService, IClientManager
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Stopping ACARS client manager and disposing all clients");
+        _logger.Information("Stopping ACARS client manager and disposing all clients");
 
         await base.StopAsync(cancellationToken);
 

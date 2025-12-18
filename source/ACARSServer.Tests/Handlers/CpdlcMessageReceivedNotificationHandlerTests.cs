@@ -5,8 +5,8 @@ using ACARSServer.Messages;
 using ACARSServer.Model;
 using ACARSServer.Tests.Mocks;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Serilog.Core;
 
 namespace ACARSServer.Tests.Handlers;
 
@@ -41,7 +41,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
         var handler = new CpdlcMessageReceivedNotificationHandler(
             controllerManager,
             hubContext,
-            NullLogger<CpdlcMessageReceivedNotificationHandler>.Instance);
+            Logger.None);
 
         var downlinkMessage = new CpdlcDownlink(
             1,
@@ -91,7 +91,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
         var handler = new CpdlcMessageReceivedNotificationHandler(
             controllerManager,
             hubContext,
-            NullLogger<CpdlcMessageReceivedNotificationHandler>.Instance);
+            Logger.None);
 
         var downlinkMessage = new CpdlcDownlink(
             1,
@@ -144,7 +144,7 @@ public class CpdlcMessageReceivedNotificationHandlerTests
         var handler = new CpdlcMessageReceivedNotificationHandler(
             controllerManager,
             hubContext,
-            NullLogger<CpdlcMessageReceivedNotificationHandler>.Instance);
+            Logger.None);
 
         var downlinkMessage = new CpdlcDownlink(
             1,

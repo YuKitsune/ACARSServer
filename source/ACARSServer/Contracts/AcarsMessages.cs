@@ -1,5 +1,3 @@
-using ACARSServer.Clients;
-
 namespace ACARSServer.Contracts;
 
 public interface IUplinkMessage

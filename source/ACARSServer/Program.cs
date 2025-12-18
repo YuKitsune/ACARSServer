@@ -6,6 +6,7 @@ using ACARSServer.Model;
 using ACARSServer.Services;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 // Load .env file in development only
 if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
@@ -35,6 +36,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add environment variables to configuration (loaded from .env)
 builder.Configuration.AddEnvironmentVariables();
+
+// Configure Serilog early
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+// Register Serilog ILogger for dependency injection
+builder.Services.AddSingleton(Log.Logger);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")

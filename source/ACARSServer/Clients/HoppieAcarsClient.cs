@@ -4,6 +4,7 @@ using ACARSServer.Contracts;
 using ACARSServer.Exceptions;
 using ACARSServer.Infrastructure;
 
+
 namespace ACARSServer.Clients;
 
 // TODO: ADS-C
@@ -13,7 +14,7 @@ public class HoppieAcarsClient : IAcarsClient
     readonly HoppiesConfiguration _configuration;
     readonly HttpClient _httpClient;
     readonly IClock _clock;
-    readonly ILogger<HoppieAcarsClient> _logger;
+    readonly ILogger _logger;
     
     readonly Channel<IDownlinkMessage> _messageChannel = Channel.CreateUnbounded<IDownlinkMessage>();
     readonly Random _random = Random.Shared;
@@ -26,13 +27,13 @@ public class HoppieAcarsClient : IAcarsClient
 
     public ChannelReader<IDownlinkMessage> MessageReader => _messageChannel.Reader;
 
-    public HoppieAcarsClient(HoppiesConfiguration configuration, HttpClient httpClient, IClock clock, ILogger<HoppieAcarsClient> logger)
+    public HoppieAcarsClient(HoppiesConfiguration configuration, HttpClient httpClient, IClock clock, ILogger logger)
     {
         _configuration = configuration;
         _httpClient = httpClient;
         _httpClient.Timeout = TimeSpan.FromSeconds(15);
         _clock = clock;
-        _logger = logger;
+        _logger = logger.ForContext("FlightSimulationNetwork", _configuration.FlightSimulationNetwork).ForContext("StationIdentifier", _configuration.StationIdentifier);
     }
 
     public Task Connect(CancellationToken cancellationToken)
@@ -43,10 +44,7 @@ public class HoppieAcarsClient : IAcarsClient
         _pollCancellationTokenSource = new CancellationTokenSource();
         _pollTask = Poll(_pollCancellationTokenSource.Token);
 
-        _logger.LogInformation(
-            "Connected to Hoppies ACARS network for {Network} as {StationIdentifier}",
-            _configuration.FlightSimulationNetwork,
-            _configuration.StationIdentifier);
+        _logger.Information("Connected to Hoppies ACARS network");
 
         return Task.CompletedTask;
     }
@@ -80,18 +78,18 @@ public class HoppieAcarsClient : IAcarsClient
             response.EnsureSuccessStatusCode();
 
             var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogDebug("Send response: {Response}", responseText);
+            _logger.Debug("Send response: {Response}", responseText);
 
             _lastSendTime = _clock.UtcNow();
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to send message");
+            _logger.Error(ex, "Failed to send message");
             throw;
         }
         catch (TaskCanceledException ex) when (ex.CancellationToken != cancellationToken)
         {
-            _logger.LogWarning("Send request timed out, skipping");
+            _logger.Warning("Send request timed out, skipping");
         }
     }
 
@@ -106,10 +104,7 @@ public class HoppieAcarsClient : IAcarsClient
         if (_pollTask is not null)
             await _pollTask;
 
-        _logger.LogInformation(
-            "Disconnected {Station} on {Network} from Hoppies ACARS network",
-            _configuration.StationIdentifier,
-            _configuration.FlightSimulationNetwork);
+        _logger.Information("Disconnected from Hoppies ACARS network");
     }
 
     async Task Poll(CancellationToken cancellationToken)
@@ -120,6 +115,8 @@ public class HoppieAcarsClient : IAcarsClient
             {
                 try
                 {
+                    _logger.Debug("Polling for messages");
+                    
                     var parameters = new Dictionary<string, string>
                     {
                         ["logon"] = _configuration.AuthenticationCode,
@@ -134,6 +131,8 @@ public class HoppieAcarsClient : IAcarsClient
 
                     var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
 
+                    _logger.Verbose("Poll response: {Response}", responseText);
+                    
                     if (!string.IsNullOrWhiteSpace(responseText) && responseText != "ok")
                     {
                         ParseAndPublishDownlinkMessages(responseText);
@@ -141,29 +140,29 @@ public class HoppieAcarsClient : IAcarsClient
                 }
                 catch (HttpRequestException ex)
                 {
-                    _logger.LogError(ex, "Poll request failed");
+                    _logger.Error(ex, "Poll request failed");
                 }
                 catch (TaskCanceledException ex) when (ex.CancellationToken != cancellationToken)
                 {
-                    _logger.LogWarning("Poll request timed out, skipping this attempt");
+                    _logger.Warning("Poll request timed out, skipping this attempt");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Unhandled exception when polling messages");
+                    _logger.Error(ex, "Unhandled exception when polling messages");
                 }
 
                 var pollInterval = GetPollInterval();
-                _logger.LogDebug("Poll completed, waiting {PollInterval}", pollInterval);
+                _logger.Debug("Poll completed, waiting {PollInterval}", pollInterval);
                 await Task.Delay(pollInterval, cancellationToken);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogInformation("Stopping poll task");
+            _logger.Information("Stopping poll task");
         }
         catch (Exception ex)
         {
-            _logger.LogCritical(ex, "Unhandled exception when polling messages");
+            _logger.Fatal(ex, "Unhandled exception when polling messages");
         }
     }
 
@@ -181,14 +180,17 @@ public class HoppieAcarsClient : IAcarsClient
 
             if (responseText.StartsWith("error", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning("Hoppie server error: {Error}", responseText);
+                _logger.Warning("Hoppie server error: {Error}", responseText);
                 return;
             }
 
             var messages = ExtractMessages(responseText);
+            
+            _logger.Debug("Extracted {Count} messages", messages.Count);
 
             foreach (var messageText in messages)
             {
+                _logger.Verbose("Extracted: {Message}", messageText);
                 var (from, type, packet) = ParseMessage(messageText);
 
                 IDownlinkMessage? message = type.ToLowerInvariant() switch
@@ -201,11 +203,11 @@ public class HoppieAcarsClient : IAcarsClient
                 if (message is not null)
                 {
                     _messageChannel.Writer.TryWrite(message);
-                    _logger.LogInformation("Received {MessageType} from {From}", type, from);
+                    _logger.Information("Received {MessageType} from {From}", type, from);
                 }
                 else
                 {
-                    _logger.LogInformation("Unsupported message type: {Type}", type);
+                    _logger.Information("Unsupported message type: {Type}", type);
                 }
             }
         }
