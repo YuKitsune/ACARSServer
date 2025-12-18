@@ -10,8 +10,8 @@ WORKDIR /src
 COPY ["source/ACARSServer/ACARSServer.csproj", "ACARSServer/"]
 RUN dotnet restore "ACARSServer/ACARSServer.csproj"
 COPY . .
-WORKDIR "/src/ACARSServer"
-RUN dotnet build "./ACARSServer.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/source/ACARSServer"
+RUN dotnet build "ACARSServer.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
