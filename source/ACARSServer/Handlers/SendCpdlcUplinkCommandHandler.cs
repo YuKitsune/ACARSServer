@@ -13,11 +13,11 @@ public class SendCpdlcUplinkCommandHandler(
     {
         try
         {
-            var client = await clientManager.GetOrCreateAcarsClient(
+            var client = await clientManager.GetAcarsClient(
                 request.Context.FlightSimulationNetwork,
                 request.Context.StationIdentifier,
                 cancellationToken);
-        
+
             await client.Send(request.Uplink, cancellationToken);
             logger.LogDebug(
                 "Sent CPDLC message from {ControllerCallsign} to {PilotCallsign}",

@@ -223,7 +223,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, "UAL123 YBBB telex THIS IS A TEST");
+        httpHandler.QueueResponse(HttpStatusCode.OK, "ok {UAL123 telex {THIS IS A TEST}}");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok"); // Subsequent polls return empty
         var client = CreateClient(httpHandler);
 
@@ -245,7 +245,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, "UAL123 YBBB cpdlc /data/5//Y/REQUEST DESCENT");
+        httpHandler.QueueResponse(HttpStatusCode.OK, "ok {UAL123 cpdlc {/data/5//Y/REQUEST DESCENT}}");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
 
@@ -269,7 +269,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, "UAL123 YBBB cpdlc /data/7/3/N/WILCO");
+        httpHandler.QueueResponse(HttpStatusCode.OK, "ok {UAL123 cpdlc {/data/7/3/N/WILCO}}");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
 
@@ -294,7 +294,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        var response = "UAL123 YBBB telex HELLO\nDAL456 YBBB cpdlc /data/1//Y/REQUEST CLIMB";
+        var response = "ok {UAL123 telex {HELLO}} {DAL456 cpdlc {/data/1//Y/REQUEST CLIMB}}";
         httpHandler.QueueResponse(HttpStatusCode.OK, response);
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
@@ -324,7 +324,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, $"UAL123 YBBB cpdlc /data/1//{code}/TEST");
+        httpHandler.QueueResponse(HttpStatusCode.OK, $"ok {{UAL123 cpdlc {{/data/1//{code}/TEST}}}}");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
 

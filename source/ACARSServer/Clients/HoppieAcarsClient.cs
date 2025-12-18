@@ -123,7 +123,8 @@ public class HoppieAcarsClient : IAcarsClient
                     var parameters = new Dictionary<string, string>
                     {
                         ["logon"] = _configuration.AuthenticationCode,
-                        ["to"] = _configuration.StationIdentifier,
+                        ["from"] = _configuration.StationIdentifier,
+                        ["to"] = "SERVER",
                         ["type"] = "poll"
                     };
 
@@ -170,24 +171,25 @@ public class HoppieAcarsClient : IAcarsClient
     {
         try
         {
-            var lines = responseText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var line in lines)
+            if (responseText.StartsWith("ok", StringComparison.OrdinalIgnoreCase))
             {
-                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("ok", StringComparison.OrdinalIgnoreCase))
-                    continue;
+                responseText = responseText[2..].TrimStart();
+            }
 
-                var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length < 3)
-                {
-                    _logger.LogWarning("Invalid message format: {Line}", line);
-                    continue;
-                }
+            if (string.IsNullOrWhiteSpace(responseText))
+                return;
 
-                var from = parts[0];
-                var to = parts[1];
-                var type = parts[2];
-                var packet = parts.Length > 3 ? string.Join(" ", parts[3..]) : string.Empty;
+            if (responseText.StartsWith("error", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Hoppie server error: {Error}", responseText);
+                return;
+            }
+
+            var messages = ExtractMessages(responseText);
+
+            foreach (var messageText in messages)
+            {
+                var (from, type, packet) = ParseMessage(messageText);
 
                 IDownlinkMessage? message = type.ToLowerInvariant() switch
                 {
@@ -199,7 +201,7 @@ public class HoppieAcarsClient : IAcarsClient
                 if (message is not null)
                 {
                     _messageChannel.Writer.TryWrite(message);
-                    _logger.LogDebug("Received {MessageType} from {From} to {To}", type, from, to);
+                    _logger.LogInformation("Received {MessageType} from {From}", type, from);
                 }
                 else
                 {
@@ -211,6 +213,65 @@ public class HoppieAcarsClient : IAcarsClient
         {
             throw new MessageParseException("Failed to parse downlink messages", ex);
         }
+    }
+
+    static List<string> ExtractMessages(string responseText)
+    {
+        var messages = new List<string>();
+        var depth = 0;
+        var currentMessage = new System.Text.StringBuilder();
+
+        for (var i = 0; i < responseText.Length; i++)
+        {
+            var c = responseText[i];
+
+            if (c == '{')
+            {
+                depth++;
+                if (depth == 1)
+                    continue;
+            }
+            else if (c == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    messages.Add(currentMessage.ToString());
+                    currentMessage.Clear();
+                    continue;
+                }
+            }
+
+            if (depth > 0)
+            {
+                currentMessage.Append(c);
+            }
+        }
+
+        return messages;
+    }
+
+    static (string from, string type, string packet) ParseMessage(string messageText)
+    {
+        var firstBraceIndex = messageText.IndexOf('{');
+        if (firstBraceIndex == -1)
+        {
+            var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+                throw new Exception($"Invalid message format: {messageText}");
+
+            return (parts[0], parts[1], parts.Length > 2 ? string.Join(" ", parts[2..]) : string.Empty);
+        }
+
+        var headerParts = messageText[..firstBraceIndex].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (headerParts.Length < 2)
+            throw new Exception($"Invalid message format: {messageText}");
+
+        var packet = messageText[(firstBraceIndex + 1)..];
+        if (packet.EndsWith('}'))
+            packet = packet[..^1];
+
+        return (headerParts[0], headerParts[1], packet);
     }
 
     static ICpdlcDownlink ParseCpdlcDownlink(string from, string packet)

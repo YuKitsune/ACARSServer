@@ -1,4 +1,5 @@
 using ACARSServer.Clients;
+using ACARSServer.Exceptions;
 
 namespace ACARSServer.Tests.Mocks;
 
@@ -7,32 +8,26 @@ public class TestClientManager : IClientManager
     private readonly Dictionary<string, IAcarsClient> _clients = new();
     private readonly TestAcarsClient _defaultClient = new();
 
-    public Task EnsureClientExists(string flightSimulationNetwork, string stationIdentifier, CancellationToken cancellationToken)
+    public TestClientManager()
     {
-        var key = CreateKey(flightSimulationNetwork, stationIdentifier);
-        if (!_clients.ContainsKey(key))
-        {
-            _clients[key] = _defaultClient;
-        }
-        return Task.CompletedTask;
+        AddClient("VATSIM", "YBBB", _defaultClient);
+        AddClient("VATSIM", "YMMM", _defaultClient);
     }
 
-    public Task<IAcarsClient> GetOrCreateAcarsClient(string flightSimulationNetwork, string stationId, CancellationToken cancellationToken)
+    public void AddClient(string flightSimulationNetwork, string stationIdentifier, IAcarsClient client)
+    {
+        var key = CreateKey(flightSimulationNetwork, stationIdentifier);
+        _clients[key] = client;
+    }
+
+    public Task<IAcarsClient> GetAcarsClient(string flightSimulationNetwork, string stationId, CancellationToken cancellationToken)
     {
         var key = CreateKey(flightSimulationNetwork, stationId);
         if (!_clients.TryGetValue(key, out var client))
         {
-            client = _defaultClient;
-            _clients[key] = client;
+            throw new ConfigurationNotFoundException(flightSimulationNetwork, stationId);
         }
         return Task.FromResult(client);
-    }
-
-    public Task RemoveAcarsClient(string flightSimulationNetwork, string stationId, CancellationToken cancellationToken)
-    {
-        var key = CreateKey(flightSimulationNetwork, stationId);
-        _clients.Remove(key);
-        return Task.CompletedTask;
     }
 
     public bool ClientExists(string flightSimulationNetwork, string stationIdentifier)

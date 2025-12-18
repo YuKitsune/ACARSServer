@@ -12,5 +12,4 @@ public class HoppiesConfiguration : IAcarsNetworkConfiguration
     public required string StationIdentifier { get; init; } // i.e. YMMM
     public required Uri Url { get; init; }
     public required string AuthenticationCode { get; init; }
-    public int HeartbeatIntervalMinutes { get; init; } = 1440;
 }
