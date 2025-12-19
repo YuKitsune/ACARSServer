@@ -29,7 +29,11 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientManager>());
 builder.Services.AddSingleton<IApiKeyValidator, ApiKeyValidator>();
 builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver();
+    });
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
