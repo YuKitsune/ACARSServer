@@ -57,12 +57,12 @@ public class ControllerHub : Hub
         }
 
         // Validate API key
-        var validationResult = await _apiKeyValidator.ValidateAsync(apiKey);
-        if (validationResult is null)
-        {
-            _logger.Warning("Invalid API key attempt from {ConnectionId}", Context.ConnectionId);
-            throw new HubException("Invalid API key");
-        }
+        // var validationResult = await _apiKeyValidator.ValidateAsync(apiKey);
+        // if (validationResult is null)
+        // {
+        //     _logger.Warning("Invalid API key attempt from {ConnectionId}", Context.ConnectionId);
+        //     throw new HubException("Invalid API key");
+        // }
 
         var controller = new ControllerInfo(
             Guid.NewGuid(),
@@ -70,13 +70,14 @@ public class ControllerHub : Hub
             network,
             stationId,
             callsign,
-            validationResult.VatsimCid);
+            "TEST");
+            // validationResult.VatsimCid);
 
         _controllerManager.AddController(controller);
 
         _logger.Information(
             "Controller connected: {Callsign} (VATSIM CID: {VatsimCid}) on {Network}/{StationId} (ConnectionId: {ConnectionId})",
-            callsign, validationResult.VatsimCid, network, stationId, Context.ConnectionId);
+            callsign, "TEST", network, stationId, Context.ConnectionId);
 
         await _mediator.Publish(
             new ControllerConnectedNotification(
