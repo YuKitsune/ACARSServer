@@ -90,7 +90,7 @@ public class ControllerHub : Hub
     }
 
     public async Task SendUplink(CpdlcUplink uplinkMessage) => await SendUplinkInternal(uplinkMessage);
-    public async Task SendUplink(CpdlcUplinkReply uplinkReply) => await SendUplinkInternal(uplinkReply);
+    public async Task SendUplinkReply(CpdlcUplinkReply uplinkReply) => await SendUplinkInternal(uplinkReply);
 
     async Task SendUplinkInternal(IUplinkMessage uplinkMessage)
     {
