@@ -350,7 +350,7 @@ public class HoppieAcarsClient : IAcarsClient
             ? cpdlcReplyMessage.ReplyToMessageId.ToString()
             : string.Empty;
         
-        return $"/data/{messageId}/{replyToId}/{responseType}/{UrlEncoder.Default.Encode(cpdlcMessage.Content)}";
+        return $"/data/{messageId}/{replyToId}/{responseType}/{cpdlcMessage.Content}";
     }
     
     public async ValueTask DisposeAsync()
