@@ -1,31 +1,40 @@
 using ACARSServer.Clients;
+using ACARSServer.Contracts;
 using ACARSServer.Messages;
+using ACARSServer.Services;
 using MediatR;
 
 
 namespace ACARSServer.Handlers;
 
-public class SendUplinkCommandHandler(IClientManager clientManager, ILogger logger)
-    : IRequestHandler<SendUplinkCommand>
+public class SendUplinkCommandHandler(IClientManager clientManager, IMessageIdProvider messageIdProvider, ILogger logger)
+    : IRequestHandler<SendUplinkCommand, SendUplinkResult>
 {
-    public async Task Handle(SendUplinkCommand request, CancellationToken cancellationToken)
+    public async Task<SendUplinkResult> Handle(SendUplinkCommand request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var client = await clientManager.GetAcarsClient(
-                request.Context.FlightSimulationNetwork,
-                request.Context.StationIdentifier,
-                cancellationToken);
+        var client = await clientManager.GetAcarsClient(
+            request.Context.FlightSimulationNetwork,
+            request.Context.StationIdentifier,
+            cancellationToken);
+        
+        var messageId = await messageIdProvider.GetNextMessageId(
+            request.Context.StationIdentifier,
+            request.Recipient,
+            cancellationToken);
 
-            await client.Send(request.Uplink, cancellationToken);
-            logger.Information(
-                "Sent CPDLC message from {ControllerCallsign} to {PilotCallsign}",
-                request.Context.Callsign,
-                request.Uplink.Recipient);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Failed to send CPDLC message");
-        }
+        var uplink = new CpdlcUplink(
+            messageId,
+            request.Recipient,
+            request.ReplyToDownlinkId,
+            request.ResponseType,
+            request.Content);
+
+        await client.Send(uplink, cancellationToken);
+        logger.Information(
+            "Sent CPDLC message from {ControllerCallsign} to {PilotCallsign}",
+            request.Context.Callsign,
+            uplink.Recipient);
+
+        return new SendUplinkResult(messageId);
     }
 }

@@ -1,7 +1,6 @@
 using ACARSServer.Contracts;
 using ACARSServer.Messages;
 using ACARSServer.Model;
-using ACARSServer.Services;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 
@@ -13,18 +12,15 @@ public class ControllerHub : Hub
     private readonly IControllerManager _controllerManager;
     private readonly IMediator _mediator;
     private readonly ILogger _logger;
-    private readonly IApiKeyValidator _apiKeyValidator;
 
     public ControllerHub(
         IControllerManager controllerManager,
         IMediator mediator,
-        ILogger logger,
-        IApiKeyValidator apiKeyValidator)
+        ILogger logger)
     {
         _controllerManager = controllerManager;
         _mediator = mediator;
         _logger = logger.ForContext<ControllerHub>();
-        _apiKeyValidator = apiKeyValidator;
     }
 
     public override async Task OnConnectedAsync()
@@ -35,19 +31,11 @@ public class ControllerHub : Hub
             throw new HubException("HTTP context not available");
         }
 
-        // Read API key from header
-        var apiKey = httpContext.Request.Headers["X-ACARS-ApiKey"].ToString();
-
         // Read connection parameters from query string
         var query = httpContext.Request.Query;
         var network = query["network"].ToString();
         var stationId = query["stationId"].ToString();
         var callsign = query["callsign"].ToString();
-
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            throw new HubException("API key is required (provide X-ACARS-ApiKey header)");
-        }
 
         if (string.IsNullOrWhiteSpace(network) ||
             string.IsNullOrWhiteSpace(stationId) ||
@@ -89,16 +77,17 @@ public class ControllerHub : Hub
         await base.OnConnectedAsync();
     }
 
-    public async Task SendUplink(CpdlcUplink uplinkMessage) => await SendUplinkInternal(uplinkMessage);
-    public async Task SendUplinkReply(CpdlcUplinkReply uplinkReply) => await SendUplinkInternal(uplinkReply);
-
-    async Task SendUplinkInternal(IUplinkMessage uplinkMessage)
+    public async Task<SendUplinkResult> SendUplink(
+        string recipient,
+        int? replyToDownlinkId,
+        CpdlcUplinkResponseType responseType,
+        string content)
     {
         var controller = _controllerManager.GetController(Context.ConnectionId);
         if (controller is null)
         {
             _logger.Warning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
-            return;
+            throw new InvalidOperationException($"Controller not found for connection {Context.ConnectionId}");
         }
 
         var userContext = new UserContext(
@@ -107,8 +96,15 @@ public class ControllerHub : Hub
             controller.FlightSimulationNetwork,
             controller.StationIdentifier,
             controller.Callsign);
+        
+        var command = new SendUplinkCommand(
+            userContext,
+            recipient,
+            replyToDownlinkId,
+            responseType,
+            content);
 
-        await _mediator.Send(new SendUplinkCommand(userContext, uplinkMessage));
+        return await _mediator.Send(command);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

@@ -1,4 +1,4 @@
 namespace ACARSServer.Exceptions;
 
-public class MessageParseException(string message, Exception innerException)
+public class MessageParseException(string message, Exception? innerException = null)
     : Exception(message, innerException);

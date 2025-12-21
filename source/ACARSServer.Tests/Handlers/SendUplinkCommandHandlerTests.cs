@@ -13,8 +13,10 @@ public class SendUplinkCommandHandlerTests
     {
         // Arrange
         var clientManager = new TestClientManager();
+        var messageIdProvider = new TestMessageIdProvider();
         var handler = new SendUplinkCommandHandler(
             clientManager,
+            messageIdProvider,
             Logger.None);
 
         var context = new UserContext(
@@ -24,22 +26,30 @@ public class SendUplinkCommandHandlerTests
             "YBBB",
             "BN-TSN_FSS");
 
-        var message = new CpdlcUplink(
-            1,
+        var command = new SendUplinkCommand(
+            context,
             "UAL123",
+            null,
             CpdlcUplinkResponseType.WilcoUnable,
             "CLIMB TO @FL410@");
 
-        var command = new SendUplinkCommand(context, message);
-
         // Act
-        await handler.Handle(command, CancellationToken.None);
+        var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
+        Assert.NotNull(result);
+        Assert.Equal(1, result.UplinkMessageId);
+
         var client = await clientManager.GetAcarsClient("VATSIM", "YBBB", CancellationToken.None);
         var testClient = (TestAcarsClient)client;
         Assert.Single(testClient.SentMessages);
-        Assert.Equal(message, testClient.SentMessages[0]);
+
+        var sentMessage = Assert.IsType<CpdlcUplink>(testClient.SentMessages[0]);
+        Assert.Equal(1, sentMessage.Id);
+        Assert.Equal("UAL123", sentMessage.Recipient);
+        Assert.Null(sentMessage.ReplyToDownlinkId);
+        Assert.Equal(CpdlcUplinkResponseType.WilcoUnable, sentMessage.ResponseType);
+        Assert.Equal("CLIMB TO @FL410@", sentMessage.Content);
     }
 
     [Fact]
@@ -47,8 +57,10 @@ public class SendUplinkCommandHandlerTests
     {
         // Arrange
         var clientManager = new TestClientManager();
+        var messageIdProvider = new TestMessageIdProvider();
         var handler = new SendUplinkCommandHandler(
             clientManager,
+            messageIdProvider,
             Logger.None);
 
         var context = new UserContext(
@@ -58,22 +70,29 @@ public class SendUplinkCommandHandlerTests
             "YBBB",
             "BN-TSN_FSS");
 
-        var reply = new CpdlcUplinkReply(
-            2,
+        var command = new SendUplinkCommand(
+            context,
             "UAL123",
-            1,
+            5,
             CpdlcUplinkResponseType.NoResponse,
             "ROGER");
 
-        var command = new SendUplinkCommand(context, reply);
-
         // Act
-        await handler.Handle(command, CancellationToken.None);
+        var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
+        Assert.NotNull(result);
+        Assert.Equal(1, result.UplinkMessageId);
+
         var client = await clientManager.GetAcarsClient("VATSIM", "YBBB", CancellationToken.None);
         var testClient = (TestAcarsClient)client;
         Assert.Single(testClient.SentMessages);
-        Assert.Equal(reply, testClient.SentMessages[0]);
+
+        var sentMessage = Assert.IsType<CpdlcUplink>(testClient.SentMessages[0]);
+        Assert.Equal(1, sentMessage.Id);
+        Assert.Equal("UAL123", sentMessage.Recipient);
+        Assert.Equal(5, sentMessage.ReplyToDownlinkId);
+        Assert.Equal(CpdlcUplinkResponseType.NoResponse, sentMessage.ResponseType);
+        Assert.Equal("ROGER", sentMessage.Content);
     }
 }

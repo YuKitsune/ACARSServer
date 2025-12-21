@@ -1,4 +1,3 @@
-using System.Text.Encodings.Web;
 using System.Threading.Channels;
 using ACARSServer.Contracts;
 using ACARSServer.Exceptions;
@@ -195,7 +194,6 @@ public class HoppieAcarsClient : IAcarsClient
 
                 IDownlinkMessage? message = type.ToLowerInvariant() switch
                 {
-                    "telex" => new TelexDownlink(from, packet),
                     "cpdlc" => ParseCpdlcDownlink(from, packet),
                     _ => null
                 };
@@ -276,11 +274,11 @@ public class HoppieAcarsClient : IAcarsClient
         return (headerParts[0], headerParts[1], packet);
     }
 
-    static ICpdlcDownlink ParseCpdlcDownlink(string from, string packet)
+    static CpdlcDownlink ParseCpdlcDownlink(string from, string packet)
     {
         var parts = packet.Split('/');
         if (parts.Length != 6)
-            throw new Exception($"Invalid CPDLC packet: Expected 6 components, got {parts.Length}: \"{packet}\"");
+            throw new MessageParseException($"Invalid CPDLC packet: Expected 6 components, got {parts.Length}: \"{packet}\"");
 
         var messageId = int.Parse(parts[2]);
         int? replyToId = !string.IsNullOrEmpty(parts[3]) ? int.Parse(parts[3]) : null;
@@ -288,19 +286,12 @@ public class HoppieAcarsClient : IAcarsClient
         {
             "N" => CpdlcDownlinkResponseType.NoResponse,
             "Y" => CpdlcDownlinkResponseType.ResponseRequired,
-            _ => throw new ArgumentOutOfRangeException($"Unexpected CPDLC downlink response type: {parts[4]}")
+            _ => throw new NotSupportedException($"Unsupported CPDLC downlink response type: {parts[4]}")
         };
 
         var content = parts[5];
 
-        if (replyToId is not null)
-        {
-            return new CpdlcDownlinkReply(messageId, from, replyToId.Value, responseType, content);
-        }
-        else
-        {
-            return new CpdlcDownlink(messageId, from, responseType, content);
-        }
+        return new CpdlcDownlink(messageId, from, replyToId, responseType, content);
     }
 
     TimeSpan GetPollInterval()
@@ -319,21 +310,17 @@ public class HoppieAcarsClient : IAcarsClient
 
     static string GetMessageType(IUplinkMessage message) => message switch
     {
-        TelexUplink => "telex",
         ICpdlcUplink => "cpdlc",
-        _ => throw new ArgumentException($"Unexpected message type: {message.GetType().Name}")
+        _ => throw new NotSupportedException($"Unsupported message type: {message.GetType().Name}")
     };
 
     string GetPacket(IUplinkMessage message) => message switch
     {
-        TelexUplink m => UrlEncoder.Default.Encode(m.Content),
-        ICpdlcUplink m => SerializeCpdlcMessage(m),
-        _ => throw new ArgumentException($"Unexpected message type: {message.GetType().Name}")
+        CpdlcUplink m => SerializeCpdlcMessage(m),
+        _ => throw new NotSupportedException($"Unexpected message type: {message.GetType().Name}")
     };
-
-    int _messageId;
     
-    string SerializeCpdlcMessage(ICpdlcUplink cpdlcMessage)
+    string SerializeCpdlcMessage(CpdlcUplink cpdlcMessage)
     {
         var responseType = cpdlcMessage.ResponseType switch
         {
@@ -344,13 +331,11 @@ public class HoppieAcarsClient : IAcarsClient
             _ => throw new ArgumentException($"Unexpected CpdlcResponseType: {cpdlcMessage.ResponseType}")
         };
 
-        var messageId = Interlocked.Increment(ref _messageId);
-
-        var replyToId = cpdlcMessage is ICpdlcReply cpdlcReplyMessage
-            ? cpdlcReplyMessage.ReplyToMessageId.ToString()
+        var replyToId = cpdlcMessage.ReplyToDownlinkId is not null
+            ? cpdlcMessage.ReplyToDownlinkId.ToString()
             : string.Empty;
         
-        return $"/data2/{messageId}/{replyToId}/{responseType}/{cpdlcMessage.Content}";
+        return $"/data2/{cpdlcMessage.Id}/{replyToId}/{responseType}/{cpdlcMessage.Content}";
     }
     
     public async ValueTask DisposeAsync()

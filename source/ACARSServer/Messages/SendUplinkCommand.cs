@@ -5,5 +5,10 @@ namespace ACARSServer.Messages;
 
 public record SendUplinkCommand(
     UserContext Context,
-    IUplinkMessage Uplink)
-    : IRequest;
+    string Recipient,
+    int? ReplyToDownlinkId,
+    CpdlcUplinkResponseType ResponseType,
+    string Content)
+    : IRequest<SendUplinkResult>;
+    
+public record SendUplinkResult(int UplinkMessageId);

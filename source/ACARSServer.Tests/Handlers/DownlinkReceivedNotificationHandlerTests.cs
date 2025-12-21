@@ -46,6 +46,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var downlinkMessage = new CpdlcDownlink(
             1,
             "UAL123",
+            null,
             CpdlcDownlinkResponseType.ResponseRequired,
             "REQUEST DESCENT");
 
@@ -96,6 +97,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var downlinkMessage = new CpdlcDownlink(
             1,
             "UAL123",
+            null,
             CpdlcDownlinkResponseType.ResponseRequired,
             "REQUEST DESCENT");
 
@@ -149,6 +151,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var downlinkMessage = new CpdlcDownlink(
             1,
             "UAL123",
+            null,
             CpdlcDownlinkResponseType.ResponseRequired,
             "REQUEST DESCENT");
 

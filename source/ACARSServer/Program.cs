@@ -26,8 +26,8 @@ builder.Services.AddSingleton<IControllerManager, ControllerManager>();
 builder.Services.AddSingleton<ClientManager>();
 builder.Services.AddSingleton<IClientManager>(sp => sp.GetRequiredService<ClientManager>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientManager>());
-builder.Services.AddSingleton<IApiKeyValidator, ApiKeyValidator>();
 builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
+builder.Services.AddSingleton<IMessageIdProvider, MessageIdProvider>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddSignalR()
     .AddJsonProtocol(options =>

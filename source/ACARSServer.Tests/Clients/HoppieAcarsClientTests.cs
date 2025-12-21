@@ -1,7 +1,6 @@
 using System.Net;
 using ACARSServer.Clients;
 using ACARSServer.Contracts;
-using ACARSServer.Messages;
 using ACARSServer.Tests.Mocks;
 using Serilog.Core;
 
@@ -51,40 +50,6 @@ public class HoppieAcarsClientTests : IDisposable
     }
 
     [Fact]
-    public async Task Send_TelexMessage_FormatsRequestCorrectly()
-    {
-        // Arrange
-        var httpHandler = new TestHttpMessageHandler();
-        httpHandler.SetResponse(HttpStatusCode.OK, "ok");
-        var client = CreateClient(httpHandler);
-
-        await client.Connect(CancellationToken.None);
-
-        var message = new TelexUplink("UAL123", "THIS IS A TEST MESSAGE");
-
-        // Act
-        await client.Send(message, CancellationToken.None);
-
-        // Assert
-        var sendRequest = httpHandler.Requests.FirstOrDefault(r =>
-        {
-            var formDataString = r.Content?.ReadAsStringAsync().Result ?? "";
-            return formDataString.Contains("type=telex");
-        });
-
-        Assert.NotNull(sendRequest);
-        Assert.Equal(HttpMethod.Post, sendRequest.Method);
-
-        var formData = await ParseFormDataFromRequest(sendRequest);
-        Assert.Equal("TEST123", formData["logon"]);
-        Assert.Equal("VATSIM", formData["network"]);
-        Assert.Equal("YBBB", formData["from"]);
-        Assert.Equal("UAL123", formData["to"]);
-        Assert.Equal("telex", formData["type"]);
-        Assert.Equal("THIS%20IS%20A%20TEST%20MESSAGE", formData["packet"]);
-    }
-
-    [Fact]
     public async Task Send_CpdlcMessage_FormatsPayloadCorrectly()
     {
         // Arrange
@@ -97,6 +62,7 @@ public class HoppieAcarsClientTests : IDisposable
         var message = new CpdlcUplink(
             1,
             "UAL123",
+            null,
             CpdlcUplinkResponseType.WilcoUnable,
             "CLIMB TO @FL350@");
 
@@ -127,7 +93,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         await client.Connect(CancellationToken.None);
 
-        var reply = new CpdlcUplinkReply(
+        var reply = new CpdlcUplink(
             2,
             "UAL123",
             5,
@@ -146,7 +112,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         Assert.NotNull(sendRequest);
         var formData = await ParseFormDataFromRequest(sendRequest);
-        Assert.Equal("/data2/1/5/NE/ROGER", formData["packet"]);
+        Assert.Equal("/data2/2/5/NE/ROGER", formData["packet"]);
     }
 
     [Theory]
@@ -166,6 +132,7 @@ public class HoppieAcarsClientTests : IDisposable
         var message = new CpdlcUplink(
             1,
             "UAL123",
+            null,
             uplinkResponseType,
             "TEST");
 
@@ -200,6 +167,7 @@ public class HoppieAcarsClientTests : IDisposable
         var message = new CpdlcUplink(
             1,
             "UAL123",
+            null,
             CpdlcUplinkResponseType.WilcoUnable,
             "CLIMB TO @FL350@");
 
@@ -216,28 +184,6 @@ public class HoppieAcarsClientTests : IDisposable
         Assert.NotNull(sendRequest);
         var formData = await ParseFormDataFromRequest(sendRequest);
         Assert.Equal("/data2/1//WU/CLIMB+TO+@FL350@", formData["packet"]);
-    }
-
-    [Fact]
-    public async Task Poll_TelexMessage_ParsesCorrectly()
-    {
-        // Arrange
-        var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, "ok {UAL123 telex {THIS IS A TEST}}");
-        httpHandler.SetResponse(HttpStatusCode.OK, "ok"); // Subsequent polls return empty
-        var client = CreateClient(httpHandler);
-
-        // Act
-        await client.Connect(CancellationToken.None);
-        await Task.Delay(100); // Give polling task time to start
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var message = await client.MessageReader.ReadAsync(cts.Token);
-
-        // Assert
-        var telexMessage = Assert.IsType<TelexDownlink>(message);
-        Assert.Equal("UAL123", telexMessage.Sender);
-        Assert.Equal("THIS IS A TEST", telexMessage.Content);
     }
 
     [Fact]
@@ -259,7 +205,7 @@ public class HoppieAcarsClientTests : IDisposable
         // Assert
         var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message);
         Assert.Equal("UAL123", cpdlcMessage.Sender);
-        Assert.Equal(5, cpdlcMessage.MessageId);
+        Assert.Equal(5, cpdlcMessage.Id);
         Assert.Equal("REQUEST DESCENT", cpdlcMessage.Content);
         Assert.Equal(CpdlcDownlinkResponseType.ResponseRequired, cpdlcMessage.ResponseType);
     }
@@ -281,10 +227,10 @@ public class HoppieAcarsClientTests : IDisposable
         var message = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var cpdlcReply = Assert.IsType<CpdlcDownlinkReply>(message);
+        var cpdlcReply = Assert.IsType<CpdlcDownlink>(message);
         Assert.Equal("UAL123", cpdlcReply.Sender);
-        Assert.Equal(7, cpdlcReply.MessageId);
-        Assert.Equal(3, cpdlcReply.ReplyToMessageId);
+        Assert.Equal(7, cpdlcReply.Id);
+        Assert.Equal(3, cpdlcReply.ReplyToUplinkId);
         Assert.Equal("WILCO", cpdlcReply.Content);
         Assert.Equal(CpdlcDownlinkResponseType.NoResponse, cpdlcReply.ResponseType);
     }
@@ -294,7 +240,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        var response = "ok {UAL123 telex {HELLO}} {DAL456 cpdlc {/data2/1//Y/REQUEST CLIMB}}";
+        var response = "ok {UAL123 cpdlc {/data2/1//Y/REQUEST DESCENT}} {DAL456 cpdlc {/data2/2//Y/REQUEST CLIMB}}";
         httpHandler.QueueResponse(HttpStatusCode.OK, response);
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
@@ -308,13 +254,13 @@ public class HoppieAcarsClientTests : IDisposable
         var message2 = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var telexMessage = Assert.IsType<TelexDownlink>(message1);
-        Assert.Equal("UAL123", telexMessage.Sender);
-        Assert.Equal("HELLO", telexMessage.Content);
+        var cpdlcMessage1 = Assert.IsType<CpdlcDownlink>(message1);
+        Assert.Equal("UAL123", cpdlcMessage1.Sender);
+        Assert.Equal("REQUEST DESCENT", cpdlcMessage1.Content);
 
-        var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message2);
-        Assert.Equal("DAL456", cpdlcMessage.Sender);
-        Assert.Equal("REQUEST CLIMB", cpdlcMessage.Content);
+        var cpdlcMessage2 = Assert.IsType<CpdlcDownlink>(message2);
+        Assert.Equal("DAL456", cpdlcMessage2.Sender);
+        Assert.Equal("REQUEST CLIMB", cpdlcMessage2.Content);
     }
 
     [Theory]
