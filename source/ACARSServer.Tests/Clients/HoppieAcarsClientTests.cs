@@ -114,7 +114,7 @@ public class HoppieAcarsClientTests : IDisposable
         var formData = await ParseFormDataFromRequest(sendRequest);
 
         Assert.Equal("cpdlc", formData["type"]);
-        Assert.Equal("/data/1//WU/CLIMB%20TO%20@FL350@", formData["packet"]);
+        Assert.Equal("/data2/1//WU/CLIMB+TO+@FL350@", formData["packet"]);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         Assert.NotNull(sendRequest);
         var formData = await ParseFormDataFromRequest(sendRequest);
-        Assert.Equal("/data/1/5/NE/ROGER", formData["packet"]);
+        Assert.Equal("/data2/1/5/NE/ROGER", formData["packet"]);
     }
 
     [Theory]
@@ -181,7 +181,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         Assert.NotNull(sendRequest);
         var formData = await ParseFormDataFromRequest(sendRequest);
-        Assert.Equal($"/data/1//{expectedCode}/TEST", formData["packet"]);
+        Assert.Equal($"/data2/1//{expectedCode}/TEST", formData["packet"]);
 
         await client.DisposeAsync();
         _clients.Remove(client);
@@ -215,7 +215,7 @@ public class HoppieAcarsClientTests : IDisposable
 
         Assert.NotNull(sendRequest);
         var formData = await ParseFormDataFromRequest(sendRequest);
-        Assert.Equal("/data/1//WU/CLIMB%20TO%20@FL350@", formData["packet"]);
+        Assert.Equal("/data2/1//WU/CLIMB+TO+@FL350@", formData["packet"]);
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, "ok {UAL123 cpdlc {/data/5//Y/REQUEST DESCENT}}");
+        httpHandler.QueueResponse(HttpStatusCode.OK, "ok {UAL123 cpdlc {/data2/5//Y/REQUEST DESCENT}}");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
 
@@ -269,7 +269,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, "ok {UAL123 cpdlc {/data/7/3/N/WILCO}}");
+        httpHandler.QueueResponse(HttpStatusCode.OK, "ok {UAL123 cpdlc {/data2/7/3/N/WILCO}}");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
 
@@ -294,7 +294,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        var response = "ok {UAL123 telex {HELLO}} {DAL456 cpdlc {/data/1//Y/REQUEST CLIMB}}";
+        var response = "ok {UAL123 telex {HELLO}} {DAL456 cpdlc {/data2/1//Y/REQUEST CLIMB}}";
         httpHandler.QueueResponse(HttpStatusCode.OK, response);
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
@@ -324,7 +324,7 @@ public class HoppieAcarsClientTests : IDisposable
     {
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
-        httpHandler.QueueResponse(HttpStatusCode.OK, $"ok {{UAL123 cpdlc {{/data/1//{code}/TEST}}}}");
+        httpHandler.QueueResponse(HttpStatusCode.OK, $"ok {{UAL123 cpdlc {{/data2/1//{code}/TEST}}}}");
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
         var client = CreateClient(httpHandler);
 
