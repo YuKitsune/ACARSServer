@@ -33,9 +33,9 @@ public class ControllerHub : Hub
 
         // Read connection parameters from query string
         var query = httpContext.Request.Query;
-        var network = query["network"].ToString();
-        var stationId = query["stationId"].ToString();
-        var callsign = query["callsign"].ToString();
+        var network = query["network"].ToString().ToUpper();
+        var stationId = query["stationId"].ToString().ToUpper();
+        var callsign = query["callsign"].ToString().ToUpper();
 
         if (string.IsNullOrWhiteSpace(network) ||
             string.IsNullOrWhiteSpace(stationId) ||
