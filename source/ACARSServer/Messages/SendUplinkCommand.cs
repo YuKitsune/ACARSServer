@@ -11,4 +11,4 @@ public record SendUplinkCommand(
     string Content)
     : IRequest<SendUplinkResult>;
     
-public record SendUplinkResult(int UplinkMessageId);
+public record SendUplinkResult(CpdlcUplink UplinkMessage);

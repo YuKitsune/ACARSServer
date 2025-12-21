@@ -35,6 +35,6 @@ public class SendUplinkCommandHandler(IClientManager clientManager, IMessageIdPr
             request.Context.Callsign,
             uplink.Recipient);
 
-        return new SendUplinkResult(messageId);
+        return new SendUplinkResult(uplink);
     }
 }

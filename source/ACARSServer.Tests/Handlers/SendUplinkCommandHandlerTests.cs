@@ -38,7 +38,7 @@ public class SendUplinkCommandHandlerTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(1, result.UplinkMessageId);
+        Assert.Equal(1, result.UplinkMessage.Id);
 
         var client = await clientManager.GetAcarsClient("VATSIM", "YBBB", CancellationToken.None);
         var testClient = (TestAcarsClient)client;
@@ -82,7 +82,7 @@ public class SendUplinkCommandHandlerTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(1, result.UplinkMessageId);
+        Assert.Equal(1, result.UplinkMessage.Id);
 
         var client = await clientManager.GetAcarsClient("VATSIM", "YBBB", CancellationToken.None);
         var testClient = (TestAcarsClient)client;
