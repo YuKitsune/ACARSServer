@@ -289,6 +289,51 @@ public class HoppieAcarsClientTests : IDisposable
         _clients.Remove(client);
     }
 
+    [Fact]
+    public async Task ListConnections_ReturnsCallsigns()
+    {
+        // Arrange
+        var httpHandler = new TestHttpMessageHandler();
+        httpHandler.SetResponse(HttpStatusCode.OK, "ok {UAL123 DAL456 AAL789}");
+        var client = CreateClient(httpHandler);
+
+        // Act
+        var callsigns = await client.ListConnections(CancellationToken.None);
+
+        // Assert
+        Assert.Equal(3, callsigns.Length);
+        Assert.Contains("UAL123", callsigns);
+        Assert.Contains("DAL456", callsigns);
+        Assert.Contains("AAL789", callsigns);
+
+        var listRequest = httpHandler.Requests.FirstOrDefault(r =>
+        {
+            var formDataString = r.Content?.ReadAsStringAsync().Result ?? "";
+            return formDataString.Contains("type=ping");
+        });
+
+        Assert.NotNull(listRequest);
+        var formData = await ParseFormDataFromRequest(listRequest);
+        Assert.Equal("ping", formData["type"]);
+        Assert.Equal("ALL-CALLSIGNS", formData["packet"]);
+        Assert.Equal("SERVER", formData["to"]);
+    }
+
+    [Fact]
+    public async Task ListConnections_EmptyResponse_ReturnsEmptyArray()
+    {
+        // Arrange
+        var httpHandler = new TestHttpMessageHandler();
+        httpHandler.SetResponse(HttpStatusCode.OK, "ok");
+        var client = CreateClient(httpHandler);
+
+        // Act
+        var callsigns = await client.ListConnections(CancellationToken.None);
+
+        // Assert
+        Assert.Empty(callsigns);
+    }
+
     private async Task<Dictionary<string, string>> ParseFormDataFromRequest(HttpRequestMessage request)
     {
         var formDataString = await request.Content!.ReadAsStringAsync();

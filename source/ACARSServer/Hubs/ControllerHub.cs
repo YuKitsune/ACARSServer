@@ -7,21 +7,13 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ACARSServer.Hubs;
 
-public class ControllerHub : Hub
+public class ControllerHub(
+    IControllerManager controllerManager,
+    IMediator mediator,
+    ILogger logger)
+    : Hub
 {
-    private readonly IControllerManager _controllerManager;
-    private readonly IMediator _mediator;
-    private readonly ILogger _logger;
-
-    public ControllerHub(
-        IControllerManager controllerManager,
-        IMediator mediator,
-        ILogger logger)
-    {
-        _controllerManager = controllerManager;
-        _mediator = mediator;
-        _logger = logger.ForContext<ControllerHub>();
-    }
+    private readonly ILogger _logger = logger.ForContext<ControllerHub>();
 
     public override async Task OnConnectedAsync()
     {
@@ -61,13 +53,13 @@ public class ControllerHub : Hub
             "TEST");
             // validationResult.VatsimCid);
 
-        _controllerManager.AddController(controller);
+        controllerManager.AddController(controller);
 
         _logger.Information(
             "Controller connected: {Callsign} (VATSIM CID: {VatsimCid}) on {Network}/{StationId} (ConnectionId: {ConnectionId})",
             callsign, "TEST", network, stationId, Context.ConnectionId);
 
-        await _mediator.Publish(
+        await mediator.Publish(
             new ControllerConnectedNotification(
                 controller.UserId,
                 controller.FlightSimulationNetwork,
@@ -83,41 +75,49 @@ public class ControllerHub : Hub
         CpdlcUplinkResponseType responseType,
         string content)
     {
-        var controller = _controllerManager.GetController(Context.ConnectionId);
+        var controller = controllerManager.GetController(Context.ConnectionId);
         if (controller is null)
         {
             _logger.Warning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
             throw new InvalidOperationException($"Controller not found for connection {Context.ConnectionId}");
         }
 
-        var userContext = new UserContext(
-            controller.UserId,
-            controller.ConnectionId,
+        var command = new SendUplinkCommand(
+            controller.Callsign,
             controller.FlightSimulationNetwork,
             controller.StationIdentifier,
-            controller.Callsign);
-        
-        var command = new SendUplinkCommand(
-            userContext,
             recipient,
             replyToDownlinkId,
             responseType,
             content);
 
-        return await _mediator.Send(command);
+        return await mediator.Send(command);
+    }
+
+    public async Task<GetConnectedAircraftResult> GetConnectedAircraft()
+    {
+        var controller = controllerManager.GetController(Context.ConnectionId);
+        if (controller is null)
+        {
+            _logger.Warning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
+            throw new InvalidOperationException($"Controller not found for connection {Context.ConnectionId}");
+        }
+
+        var query = new GetConnectedAircraftRequest(controller.FlightSimulationNetwork, controller.StationIdentifier);
+        return await mediator.Send(query);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var controller = _controllerManager.GetController(Context.ConnectionId);
+        var controller = controllerManager.GetController(Context.ConnectionId);
         if (controller is not null)
         {
-            _controllerManager.RemoveController(Context.ConnectionId);
+            controllerManager.RemoveController(Context.ConnectionId);
             _logger.Information(
                 "Controller disconnected: {Callsign} (ConnectionId: {ConnectionId})",
                 controller.Callsign, Context.ConnectionId);
 
-            await _mediator.Publish(
+            await mediator.Publish(
                 new ControllerDisconnectedNotification(
                     controller.UserId,
                     controller.FlightSimulationNetwork,

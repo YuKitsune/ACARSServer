@@ -6,10 +6,11 @@ namespace ACARSServer.Tests.Mocks;
 
 public class TestAcarsClient : IAcarsClient
 {
-    private readonly Channel<IDownlinkMessage> _channel = Channel.CreateUnbounded<IDownlinkMessage>();
+    private readonly Channel<CpdlcDownlink> _channel = Channel.CreateUnbounded<CpdlcDownlink>();
 
-    public ChannelReader<IDownlinkMessage> MessageReader => _channel.Reader;
+    public ChannelReader<CpdlcDownlink> MessageReader => _channel.Reader;
 
+    public List<string> Connections { get; } = [];
     public List<IUplinkMessage> SentMessages { get; } = new();
 
     public Task Connect(CancellationToken cancellationToken)
@@ -21,6 +22,11 @@ public class TestAcarsClient : IAcarsClient
     {
         SentMessages.Add(message);
         return Task.CompletedTask;
+    }
+
+    public Task<string[]> ListConnections(CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Connections.ToArray());
     }
 
     public Task Disconnect(CancellationToken cancellationToken)

@@ -186,7 +186,8 @@ public class ClientManager : BackgroundService, IClientManager
             
             try
             {
-                await mediator.Publish(new DownlinkReceivedNotification(
+                await mediator.Publish(
+                    new DownlinkReceivedNotification(
                         flightSimulationNetwork,
                         stationIdentifier,
                         acarsMessage),

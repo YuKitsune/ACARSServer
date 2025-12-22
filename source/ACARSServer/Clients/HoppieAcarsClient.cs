@@ -15,7 +15,7 @@ public class HoppieAcarsClient : IAcarsClient
     readonly IClock _clock;
     readonly ILogger _logger;
     
-    readonly Channel<IDownlinkMessage> _messageChannel = Channel.CreateUnbounded<IDownlinkMessage>();
+    readonly Channel<CpdlcDownlink> _messageChannel = Channel.CreateUnbounded<CpdlcDownlink>();
     readonly Random _random = Random.Shared;
 
     CancellationTokenSource? _pollCancellationTokenSource;
@@ -24,7 +24,7 @@ public class HoppieAcarsClient : IAcarsClient
 
     bool _disposed;
 
-    public ChannelReader<IDownlinkMessage> MessageReader => _messageChannel.Reader;
+    public ChannelReader<CpdlcDownlink> MessageReader => _messageChannel.Reader;
 
     public HoppieAcarsClient(HoppiesConfiguration configuration, HttpClient httpClient, IClock clock, ILogger logger)
     {
@@ -89,6 +89,73 @@ public class HoppieAcarsClient : IAcarsClient
         catch (TaskCanceledException ex) when (ex.CancellationToken != cancellationToken)
         {
             _logger.Warning("Send request timed out, skipping");
+        }
+    }
+
+    public async Task<string[]> ListConnections(CancellationToken cancellationToken)
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(HoppieAcarsClient));
+
+        var parameters = new Dictionary<string, string>
+        {
+            ["logon"] = _configuration.AuthenticationCode,
+            ["from"] = _configuration.StationIdentifier,
+            ["to"] = "SERVER",
+            ["type"] = "ping",
+            ["packet"] = "ALL-CALLSIGNS"
+        };
+
+        var content = new FormUrlEncodedContent(parameters);
+
+        try
+        {
+            var response = await _httpClient.PostAsync(_configuration.Url, content, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.Debug("ListConnections response: {Response}", responseText);
+
+            // Parse the response to extract callsigns
+            if (string.IsNullOrWhiteSpace(responseText))
+                return Array.Empty<string>();
+
+            // Strip "ok" prefix if present
+            if (responseText.StartsWith("ok", StringComparison.OrdinalIgnoreCase))
+            {
+                responseText = responseText[2..].TrimStart();
+            }
+
+            if (string.IsNullOrWhiteSpace(responseText))
+                return Array.Empty<string>();
+
+            // Strip curly braces if present
+            if (responseText.StartsWith('{') && responseText.EndsWith('}'))
+            {
+                responseText = responseText[1..^1].Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(responseText))
+                return Array.Empty<string>();
+
+            // The response contains space-separated callsigns
+            var callsigns = responseText
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToArray();
+
+            _logger.Information("Found {Count} active connections", callsigns.Length);
+            return callsigns;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.Error(ex, "Failed to list connections");
+            throw;
+        }
+        catch (TaskCanceledException ex) when (ex.CancellationToken != cancellationToken)
+        {
+            _logger.Warning("ListConnections request timed out");
+            return Array.Empty<string>();
         }
     }
 
@@ -192,7 +259,7 @@ public class HoppieAcarsClient : IAcarsClient
                 _logger.Verbose("Extracted: {Message}", messageText);
                 var (from, type, packet) = ParseMessage(messageText);
 
-                IDownlinkMessage? message = type.ToLowerInvariant() switch
+                var message = type.ToLowerInvariant() switch
                 {
                     "cpdlc" => ParseCpdlcDownlink(from, packet),
                     _ => null

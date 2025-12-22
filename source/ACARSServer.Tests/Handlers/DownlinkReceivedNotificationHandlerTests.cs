@@ -4,6 +4,7 @@ using ACARSServer.Hubs;
 using ACARSServer.Messages;
 using ACARSServer.Model;
 using ACARSServer.Tests.Mocks;
+using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 using Serilog.Core;
@@ -16,6 +17,12 @@ public class DownlinkReceivedNotificationHandlerTests
     public async Task Handle_SendsMessageToMatchingControllers()
     {
         // Arrange
+        var aircraftManager = new TestAircraftManager();
+        var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
+        aircraft.RequestLogon(DateTimeOffset.UtcNow);
+        aircraft.AcceptLogon(DateTimeOffset.UtcNow);
+        aircraftManager.Add(aircraft);
+
         var controllerManager = new TestControllerManager();
         var controller1 = new ControllerInfo(
             Guid.NewGuid(),
@@ -34,11 +41,14 @@ public class DownlinkReceivedNotificationHandlerTests
         controllerManager.AddController(controller1);
         controllerManager.AddController(controller2);
 
+        var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
         hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);
 
         var handler = new DownlinkReceivedNotificationHandler(
+            aircraftManager,
+            mediator,
             controllerManager,
             hubContext,
             Logger.None);
@@ -75,6 +85,12 @@ public class DownlinkReceivedNotificationHandlerTests
     public async Task Handle_DoesNotSendWhenNoControllersMatch()
     {
         // Arrange
+        var aircraftManager = new TestAircraftManager();
+        var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
+        aircraft.RequestLogon(DateTimeOffset.UtcNow);
+        aircraft.AcceptLogon(DateTimeOffset.UtcNow);
+        aircraftManager.Add(aircraft);
+
         var controllerManager = new TestControllerManager();
         var controller = new ControllerInfo(
             Guid.NewGuid(),
@@ -85,11 +101,14 @@ public class DownlinkReceivedNotificationHandlerTests
             "1234567");
         controllerManager.AddController(controller);
 
+        var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
         hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);
 
         var handler = new DownlinkReceivedNotificationHandler(
+            aircraftManager,
+            mediator,
             controllerManager,
             hubContext,
             Logger.None);
@@ -121,6 +140,12 @@ public class DownlinkReceivedNotificationHandlerTests
     public async Task Handle_OnlySendsToControllersOnMatchingNetwork()
     {
         // Arrange
+        var aircraftManager = new TestAircraftManager();
+        var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
+        aircraft.RequestLogon(DateTimeOffset.UtcNow);
+        aircraft.AcceptLogon(DateTimeOffset.UtcNow);
+        aircraftManager.Add(aircraft);
+
         var controllerManager = new TestControllerManager();
         var vatsimController = new ControllerInfo(
             Guid.NewGuid(),
@@ -139,11 +164,14 @@ public class DownlinkReceivedNotificationHandlerTests
         controllerManager.AddController(vatsimController);
         controllerManager.AddController(ivaoController);
 
+        var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
         hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);
 
         var handler = new DownlinkReceivedNotificationHandler(
+            aircraftManager,
+            mediator,
             controllerManager,
             hubContext,
             Logger.None);
@@ -169,5 +197,59 @@ public class DownlinkReceivedNotificationHandlerTests
                 ids.Count == 1 &&
                 ids.Contains("conn-vatsim") &&
                 !ids.Contains("conn-ivao")));
+    }
+
+    [Fact]
+    public async Task Handle_PromotesAircraftToCurrentDataAuthorityOnFirstDownlink()
+    {
+        // Arrange
+        var aircraftManager = new TestAircraftManager();
+        var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.NextDataAuthority);
+        aircraft.RequestLogon(DateTimeOffset.UtcNow);
+        aircraft.AcceptLogon(DateTimeOffset.UtcNow);
+        aircraftManager.Add(aircraft);
+
+        var controllerManager = new TestControllerManager();
+        var controller = new ControllerInfo(
+            Guid.NewGuid(),
+            "ConnectionId-1",
+            "VATSIM",
+            "YBBB",
+            "BN-TSN_FSS",
+            "1234567");
+        controllerManager.AddController(controller);
+
+        var mediator = Substitute.For<IMediator>();
+        var hubContext = Substitute.For<IHubContext<ControllerHub>>();
+        var clientProxy = Substitute.For<IClientProxy>();
+        hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);
+
+        var handler = new DownlinkReceivedNotificationHandler(
+            aircraftManager,
+            mediator,
+            controllerManager,
+            hubContext,
+            Logger.None);
+
+        var downlinkMessage = new CpdlcDownlink(
+            1,
+            "UAL123",
+            null,
+            CpdlcDownlinkResponseType.ResponseRequired,
+            "REQUEST DESCENT");
+
+        var notification = new DownlinkReceivedNotification(
+            "VATSIM",
+            "YBBB",
+            downlinkMessage);
+
+        // Assert - aircraft starts as NextDataAuthority
+        Assert.Equal(DataAuthorityState.NextDataAuthority, aircraft.DataAuthorityState);
+
+        // Act
+        await handler.Handle(notification, CancellationToken.None);
+
+        // Assert - aircraft is promoted to CurrentDataAuthority
+        Assert.Equal(DataAuthorityState.CurrentDataAuthority, aircraft.DataAuthorityState);
     }
 }

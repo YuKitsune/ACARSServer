@@ -1,3 +1,5 @@
+using ACARSServer.Model;
+
 namespace ACARSServer.Contracts;
 
 public interface IUplinkMessage
@@ -44,3 +46,9 @@ public interface ICpdlcDownlink : IDownlinkMessage, ICpdlcMessage
 public record CpdlcUplink(int Id, string Recipient, int? ReplyToDownlinkId, CpdlcUplinkResponseType ResponseType, string Content) : ICpdlcUplink;
 
 public record CpdlcDownlink(int Id, string Sender, int? ReplyToUplinkId, CpdlcDownlinkResponseType ResponseType, string Content) : ICpdlcDownlink;
+
+public record ConnectedAircraftInfo(
+    string Callsign,
+    string StationId,
+    string FlightSimulationNetwork,
+    DataAuthorityState DataAuthorityState);

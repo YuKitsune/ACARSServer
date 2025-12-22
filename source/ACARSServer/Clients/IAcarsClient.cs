@@ -5,8 +5,9 @@ namespace ACARSServer.Clients;
 
 public interface IAcarsClient : IAsyncDisposable
 {
-    ChannelReader<IDownlinkMessage> MessageReader { get; }
+    ChannelReader<CpdlcDownlink> MessageReader { get; }
     Task Connect(CancellationToken cancellationToken);
     Task Send(IUplinkMessage message, CancellationToken cancellationToken);
+    Task<string[]> ListConnections(CancellationToken cancellationToken);
     Task Disconnect(CancellationToken cancellationToken);
 }

@@ -4,7 +4,9 @@ using MediatR;
 namespace ACARSServer.Messages;
 
 public record SendUplinkCommand(
-    UserContext Context,
+    string Sender,
+    string FlightSimulationNetwork,
+    string StationIdentifier,
     string Recipient,
     int? ReplyToDownlinkId,
     CpdlcUplinkResponseType ResponseType,

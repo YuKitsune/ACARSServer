@@ -13,12 +13,12 @@ public class SendUplinkCommandHandler(IClientManager clientManager, IMessageIdPr
     public async Task<SendUplinkResult> Handle(SendUplinkCommand request, CancellationToken cancellationToken)
     {
         var client = await clientManager.GetAcarsClient(
-            request.Context.FlightSimulationNetwork,
-            request.Context.StationIdentifier,
+            request.FlightSimulationNetwork,
+            request.StationIdentifier,
             cancellationToken);
         
         var messageId = await messageIdProvider.GetNextMessageId(
-            request.Context.StationIdentifier,
+            request.StationIdentifier,
             request.Recipient,
             cancellationToken);
 
@@ -31,8 +31,8 @@ public class SendUplinkCommandHandler(IClientManager clientManager, IMessageIdPr
 
         await client.Send(uplink, cancellationToken);
         logger.Information(
-            "Sent CPDLC message from {ControllerCallsign} to {PilotCallsign}",
-            request.Context.Callsign,
+            "Sent CPDLC message from {Sender} to {PilotCallsign}",
+            request.Sender,
             uplink.Recipient);
 
         return new SendUplinkResult(uplink);

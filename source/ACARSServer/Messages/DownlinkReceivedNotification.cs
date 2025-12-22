@@ -6,5 +6,5 @@ namespace ACARSServer.Messages;
 public record DownlinkReceivedNotification(
     string FlightSimulationNetwork,
     string StationIdentifier,
-    IDownlinkMessage Downlink)
+    CpdlcDownlink Downlink)
     : INotification;

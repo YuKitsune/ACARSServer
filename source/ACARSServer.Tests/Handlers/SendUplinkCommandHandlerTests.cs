@@ -19,15 +19,10 @@ public class SendUplinkCommandHandlerTests
             messageIdProvider,
             Logger.None);
 
-        var context = new UserContext(
-            Guid.NewGuid(),
-            "conn-123",
+        var command = new SendUplinkCommand(
+            "BN-TSN_FSS",
             "VATSIM",
             "YBBB",
-            "BN-TSN_FSS");
-
-        var command = new SendUplinkCommand(
-            context,
             "UAL123",
             null,
             CpdlcUplinkResponseType.WilcoUnable,
@@ -63,15 +58,10 @@ public class SendUplinkCommandHandlerTests
             messageIdProvider,
             Logger.None);
 
-        var context = new UserContext(
-            Guid.NewGuid(),
-            "conn-123",
+        var command = new SendUplinkCommand(
+            "BN-TSN_FSS",
             "VATSIM",
             "YBBB",
-            "BN-TSN_FSS");
-
-        var command = new SendUplinkCommand(
-            context,
             "UAL123",
             5,
             CpdlcUplinkResponseType.NoResponse,

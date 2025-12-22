@@ -28,6 +28,7 @@ builder.Services.AddSingleton<IClientManager>(sp => sp.GetRequiredService<Client
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientManager>());
 builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddSingleton<IMessageIdProvider, MessageIdProvider>();
+builder.Services.AddSingleton<IAircraftManager, AircraftManager>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddSignalR()
     .AddJsonProtocol(options =>
@@ -35,6 +36,8 @@ builder.Services.AddSignalR()
         options.PayloadSerializerOptions.TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver();
     });
 builder.Services.AddRazorPages();
+
+builder.Services.AddHostedService<AircraftConnectionWatchdog>();
 
 var app = builder.Build();
 
