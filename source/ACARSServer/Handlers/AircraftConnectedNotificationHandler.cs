@@ -1,3 +1,4 @@
+using ACARSServer.Contracts;
 using ACARSServer.Hubs;
 using ACARSServer.Messages;
 using ACARSServer.Model;
@@ -41,8 +42,7 @@ public class AircraftConnectedNotificationHandler(
             .Clients(controllers.Select(c => c.ConnectionId))
             .SendAsync(
                 "AircraftConnected",
-                notification.Callsign,
-                notification.DataAuthorityState,
+                new ConnectedAircraftInfo(notification.Callsign, notification.StationId, notification.FlightSimulationNetwork, notification.DataAuthorityState),
                 cancellationToken);
 
         logger.Information(

@@ -1,3 +1,4 @@
+using ACARSServer.Contracts;
 using ACARSServer.Handlers;
 using ACARSServer.Hubs;
 using ACARSServer.Messages;
@@ -61,9 +62,10 @@ public class AircraftConnectedNotificationHandlerTests
         await clientProxy.Received(1).SendCoreAsync(
             "AircraftConnected",
             Arg.Is<object[]>(args =>
-                args.Length == 2 &&
-                args[0].ToString() == "UAL123" &&
-                (DataAuthorityState)args[1] == DataAuthorityState.NextDataAuthority),
+                args.Length == 1 &&
+                args[0] is ConnectedAircraftInfo &&
+                ((ConnectedAircraftInfo)args[0]).Callsign == "UAL123" &&
+                ((ConnectedAircraftInfo)args[0]).DataAuthorityState == DataAuthorityState.NextDataAuthority),
             Arg.Any<CancellationToken>());
     }
 
@@ -182,9 +184,10 @@ public class AircraftConnectedNotificationHandlerTests
         await clientProxy.Received(1).SendCoreAsync(
             "AircraftConnected",
             Arg.Is<object[]>(args =>
-                args.Length == 2 &&
-                args[0].ToString() == "UAL123" &&
-                (DataAuthorityState)args[1] == DataAuthorityState.CurrentDataAuthority),
+                args.Length == 1 &&
+                args[0] is ConnectedAircraftInfo &&
+                ((ConnectedAircraftInfo)args[0]).Callsign == "UAL123" &&
+                ((ConnectedAircraftInfo)args[0]).DataAuthorityState == DataAuthorityState.CurrentDataAuthority),
             Arg.Any<CancellationToken>());
     }
 }
