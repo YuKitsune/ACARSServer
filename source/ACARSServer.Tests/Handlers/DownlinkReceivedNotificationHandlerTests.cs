@@ -17,10 +17,11 @@ public class DownlinkReceivedNotificationHandlerTests
     public async Task Handle_SendsMessageToMatchingControllers()
     {
         // Arrange
+        var clock = new TestClock();
         var aircraftManager = new TestAircraftManager();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
-        aircraft.RequestLogon(DateTimeOffset.UtcNow);
-        aircraft.AcceptLogon(DateTimeOffset.UtcNow);
+        aircraft.RequestLogon(clock.UtcNow());
+        aircraft.AcceptLogon(clock.UtcNow());
         aircraftManager.Add(aircraft);
 
         var controllerManager = new TestControllerManager();
@@ -49,6 +50,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
+            clock,
             controllerManager,
             hubContext,
             Logger.None);
@@ -85,10 +87,11 @@ public class DownlinkReceivedNotificationHandlerTests
     public async Task Handle_DoesNotSendWhenNoControllersMatch()
     {
         // Arrange
+        var clock = new TestClock();
         var aircraftManager = new TestAircraftManager();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
-        aircraft.RequestLogon(DateTimeOffset.UtcNow);
-        aircraft.AcceptLogon(DateTimeOffset.UtcNow);
+        aircraft.RequestLogon(clock.UtcNow());
+        aircraft.AcceptLogon(clock.UtcNow());
         aircraftManager.Add(aircraft);
 
         var controllerManager = new TestControllerManager();
@@ -109,6 +112,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
+            clock,
             controllerManager,
             hubContext,
             Logger.None);
@@ -140,10 +144,11 @@ public class DownlinkReceivedNotificationHandlerTests
     public async Task Handle_OnlySendsToControllersOnMatchingNetwork()
     {
         // Arrange
+        var clock = new TestClock();
         var aircraftManager = new TestAircraftManager();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
-        aircraft.RequestLogon(DateTimeOffset.UtcNow);
-        aircraft.AcceptLogon(DateTimeOffset.UtcNow);
+        aircraft.RequestLogon(clock.UtcNow());
+        aircraft.AcceptLogon(clock.UtcNow());
         aircraftManager.Add(aircraft);
 
         var controllerManager = new TestControllerManager();
@@ -172,6 +177,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
+            clock,
             controllerManager,
             hubContext,
             Logger.None);
@@ -203,10 +209,11 @@ public class DownlinkReceivedNotificationHandlerTests
     public async Task Handle_PromotesAircraftToCurrentDataAuthorityOnFirstDownlink()
     {
         // Arrange
+        var clock = new TestClock();
         var aircraftManager = new TestAircraftManager();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.NextDataAuthority);
-        aircraft.RequestLogon(DateTimeOffset.UtcNow);
-        aircraft.AcceptLogon(DateTimeOffset.UtcNow);
+        aircraft.RequestLogon(clock.UtcNow());
+        aircraft.AcceptLogon(clock.UtcNow());
         aircraftManager.Add(aircraft);
 
         var controllerManager = new TestControllerManager();
@@ -227,6 +234,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
+            clock,
             controllerManager,
             hubContext,
             Logger.None);
@@ -251,5 +259,67 @@ public class DownlinkReceivedNotificationHandlerTests
 
         // Assert - aircraft is promoted to CurrentDataAuthority
         Assert.Equal(DataAuthorityState.CurrentDataAuthority, aircraft.DataAuthorityState);
+    }
+
+    [Fact]
+    public async Task Handle_UpdatesLastSeen()
+    {
+        // Arrange
+        var logonTime = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var clock = new TestClock();
+        clock.SetUtcNow(logonTime);
+        
+        var aircraftManager = new TestAircraftManager();
+        var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.NextDataAuthority);
+        aircraft.RequestLogon(logonTime);
+        aircraft.AcceptLogon(logonTime);
+        aircraftManager.Add(aircraft);
+
+        var controllerManager = new TestControllerManager();
+        var controller = new ControllerInfo(
+            Guid.NewGuid(),
+            "ConnectionId-1",
+            "VATSIM",
+            "YBBB",
+            "BN-TSN_FSS",
+            "1234567");
+        controllerManager.AddController(controller);
+
+        var mediator = Substitute.For<IMediator>();
+        var hubContext = Substitute.For<IHubContext<ControllerHub>>();
+        var clientProxy = Substitute.For<IClientProxy>();
+        hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);
+
+        var expectedLastSeen = new DateTimeOffset(2026, 1, 1, 1, 0, 0, TimeSpan.Zero);
+        clock.SetUtcNow(expectedLastSeen);
+        
+        var handler = new DownlinkReceivedNotificationHandler(
+            aircraftManager,
+            mediator,
+            clock,
+            controllerManager,
+            hubContext,
+            Logger.None);
+
+        var downlinkMessage = new CpdlcDownlink(
+            1,
+            "UAL123",
+            null,
+            CpdlcDownlinkResponseType.ResponseRequired,
+            "REQUEST DESCENT");
+
+        var notification = new DownlinkReceivedNotification(
+            "VATSIM",
+            "YBBB",
+            downlinkMessage);
+
+        // Assert
+        Assert.Equal(logonTime, aircraft.LastSeen);
+
+        // Act
+        await handler.Handle(notification, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(expectedLastSeen, aircraft.LastSeen);
     }
 }

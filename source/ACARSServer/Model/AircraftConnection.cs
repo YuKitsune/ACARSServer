@@ -15,18 +15,26 @@ public class AircraftConnection(
 
     public DateTimeOffset LogonRequested { get; private set; }
     public DateTimeOffset? LogonAccepted { get; private set; }
+    public DateTimeOffset LastSeen { get; private set; }
 
     public void RequestLogon(DateTimeOffset now)
     {
         ConnectionState = ConnectionState.Pending;
         LogonRequested = now;
         LogonAccepted = null;
+        LogLastSeen(now);
     }
 
     public void AcceptLogon(DateTimeOffset now)
     {
         ConnectionState = ConnectionState.Connected;
         LogonAccepted = now;
+        LogLastSeen(now);
+    }
+
+    public void LogLastSeen(DateTimeOffset now)
+    {
+        LastSeen = now;
     }
 
     public void PromoteToCurrentDataAuthority()

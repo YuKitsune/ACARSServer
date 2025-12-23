@@ -1,5 +1,6 @@
 using ACARSServer.Clients;
 using ACARSServer.Exceptions;
+using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
 using ACARSServer.Model;
 using MediatR;
@@ -17,6 +18,7 @@ public class AircraftConnectionWatchdog : IHostedService
     
     readonly IClientManager _clientManager;
     readonly IAircraftManager _aircraftManager;
+    readonly IClock _clock;
     readonly IMediator _mediator;
     readonly ILogger _logger;
     
@@ -25,10 +27,11 @@ public class AircraftConnectionWatchdog : IHostedService
     CancellationTokenSource? _cancellationTokenSource;
     Task? _task;
 
-    public AircraftConnectionWatchdog(IClientManager clientManager, IAircraftManager aircraftManager, IMediator mediator, ILogger logger, IConfiguration configuration)
+    public AircraftConnectionWatchdog(IClientManager clientManager, IAircraftManager aircraftManager, IClock clock, IMediator mediator, ILogger logger, IConfiguration configuration)
     {
         _clientManager = clientManager;
         _aircraftManager = aircraftManager;
+        _clock = clock;
         _logger = logger;
         _mediator = mediator;
 
@@ -106,6 +109,14 @@ public class AircraftConnectionWatchdog : IHostedService
 
                         foreach (var aircraftConnection in lostConnections)
                         {
+                            // If we've seen the aircraft recently, don't boot the connection
+                            // Could be a temporary loss of connection
+                            var timeSinceLastSeen = _clock.UtcNow() - aircraftConnection.LastSeen;
+                            if (timeSinceLastSeen <= _interval)
+                            {
+                                continue;
+                            }
+                            
                             await _mediator.Publish(
                                 new AircraftLost(
                                     aircraftConnection.FlightSimulationNetwork,

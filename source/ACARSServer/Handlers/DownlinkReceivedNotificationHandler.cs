@@ -1,5 +1,6 @@
 using ACARSServer.Contracts;
 using ACARSServer.Hubs;
+using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
 using ACARSServer.Model;
 using MediatR;
@@ -10,6 +11,7 @@ namespace ACARSServer.Handlers;
 public class DownlinkReceivedNotificationHandler(
     IAircraftManager aircraftManager,
     IMediator mediator,
+    IClock clock,
     IControllerManager controllerManager,
     IHubContext<ControllerHub> hubContext,
     ILogger logger)
@@ -69,6 +71,8 @@ public class DownlinkReceivedNotificationHandler(
         {
             aircraftConnection.PromoteToCurrentDataAuthority();
         }
+        
+        aircraftConnection.LogLastSeen(clock.UtcNow());
 
         var controllers = controllerManager.Controllers
             .Where(c =>
