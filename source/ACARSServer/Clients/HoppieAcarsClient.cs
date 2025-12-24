@@ -3,13 +3,18 @@ using ACARSServer.Contracts;
 using ACARSServer.Exceptions;
 using ACARSServer.Infrastructure;
 
-
 namespace ACARSServer.Clients;
 
 // TODO: ADS-C
+// TODO: Accept encoded messages via the API (i.e. UMxxx), translate from within the client.
 
 public class HoppieAcarsClient : IAcarsClient
 {
+    readonly Dictionary<string, string> _uplinkMessageTranslations = new()
+    {
+        { "END SERVICE", "LOGOFF" }
+    };
+    
     readonly HoppiesConfiguration _configuration;
     readonly HttpClient _httpClient;
     readonly IClock _clock;
@@ -402,7 +407,16 @@ public class HoppieAcarsClient : IAcarsClient
             ? cpdlcMessage.ReplyToDownlinkId.ToString()
             : string.Empty;
         
-        return $"/data2/{cpdlcMessage.Id}/{replyToId}/{responseType}/{cpdlcMessage.Content}";
+        var content = GetTranslatedContent(cpdlcMessage);
+        
+        return $"/data2/{cpdlcMessage.Id}/{replyToId}/{responseType}/{content}";
+    }
+
+    string GetTranslatedContent(ICpdlcUplink cpdlcMessage)
+    {
+        return _uplinkMessageTranslations.TryGetValue(cpdlcMessage.Content, out var translation)
+            ? translation
+            : cpdlcMessage.Content;
     }
     
     public async ValueTask DisposeAsync()

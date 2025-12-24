@@ -153,6 +153,38 @@ public class HoppieAcarsClientTests : IDisposable
         await client.DisposeAsync();
         _clients.Remove(client);
     }
+    
+    [Fact]
+    public async Task Send_CpdlcMessage_TranslatesContent()
+    {
+        // Arrange
+        var httpHandler = new TestHttpMessageHandler();
+        httpHandler.SetResponse(HttpStatusCode.OK, "ok");
+        var client = CreateClient(httpHandler);
+    
+        await client.Connect(CancellationToken.None);
+    
+        var message = new CpdlcUplink(
+            1,
+            "UAL123",
+            null,
+            CpdlcUplinkResponseType.NoResponse,
+            "END SERVICE");
+    
+        // Act
+        await client.Send(message, CancellationToken.None);
+    
+        // Assert
+        var sendRequest = httpHandler.Requests.FirstOrDefault(r =>
+        {
+            var formDataString = r.Content?.ReadAsStringAsync().Result ?? "";
+            return formDataString.Contains("type=cpdlc");
+        });
+    
+        Assert.NotNull(sendRequest);
+        var formData = await ParseFormDataFromRequest(sendRequest);
+        Assert.Equal("/data2/1//NE/LOGOFF", formData["packet"]);
+    }
 
     [Fact]
     public async Task Send_CpdlcMessage_UrlEncodesContent()
