@@ -348,7 +348,7 @@ public class HoppieAcarsClient : IAcarsClient
 
     static CpdlcDownlink ParseCpdlcDownlink(string from, string packet)
     {
-        var parts = packet.Split('/');
+        var parts = packet.Split('/', 6);
         if (parts.Length != 6)
             throw new MessageParseException($"Invalid CPDLC packet: Expected 6 components, got {parts.Length}: \"{packet}\"");
 

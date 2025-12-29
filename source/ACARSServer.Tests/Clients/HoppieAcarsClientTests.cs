@@ -295,6 +295,28 @@ public class HoppieAcarsClientTests : IDisposable
         Assert.Equal("REQUEST CLIMB", cpdlcMessage2.Content);
     }
 
+    [Fact]
+    public async Task Poll_MessageWithSeparator_ParsesCorrectly()
+    {
+        // Arrange
+        var httpHandler = new TestHttpMessageHandler();
+        var response = "ok {UAL123 cpdlc {/data2/1//Y/REQUEST CLIMB DUE TO A/C PERFORMANCE}}";
+        httpHandler.QueueResponse(HttpStatusCode.OK, response);
+        httpHandler.SetResponse(HttpStatusCode.OK, "ok");
+        var client = CreateClient(httpHandler);
+
+        // Act
+        await client.Connect(CancellationToken.None);
+        await Task.Delay(100); // Give polling task time to start
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var message = await client.MessageReader.ReadAsync(cts.Token);
+
+        // Assert
+        var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message);
+        Assert.Equal("REQUEST CLIMB DUE TO A/C PERFORMANCE", cpdlcMessage.Content);
+    }
+
     [Theory]
     [InlineData("N", CpdlcDownlinkResponseType.NoResponse)]
     [InlineData("Y", CpdlcDownlinkResponseType.ResponseRequired)]
