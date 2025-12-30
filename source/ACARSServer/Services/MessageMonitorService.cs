@@ -24,7 +24,10 @@ public class MessageMonitorService(IDialogueRepository repository, IClock clock,
             {
                 try
                 {
+                    // TODO: Time out entire dialogues when they take too long
+                    
                     logger.Debug("Running message monitor iteration");
+                    await PurgeOldDialogues(stoppingToken);
                     await CheckForTimeouts(stoppingToken);
                     await ArchiveCompletedDialogues(stoppingToken);
                 }
@@ -49,6 +52,24 @@ public class MessageMonitorService(IDialogueRepository repository, IClock clock,
         catch (Exception ex)
         {
             logger.Error(ex, "Fatal error in message monitor task");
+        }
+    }
+
+    internal async Task PurgeOldDialogues(CancellationToken cancellationToken)
+    {
+        var now = clock.UtcNow();
+        var dialogues = await repository.All(cancellationToken);
+
+        var purgeTimeout = TimeSpan.FromHours(24);
+        foreach (var dialogue in dialogues)
+        {
+            var timeSinceOpened = now - dialogue.Opened;
+            if (timeSinceOpened < purgeTimeout)
+                continue;
+
+            // I don't care if it's closed or not. It's been long enough.
+            await repository.Remove(dialogue, cancellationToken);
+            logger.Information("Purging dialogue"); // TODO: Dialogue identifier
         }
     }
 

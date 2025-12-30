@@ -31,4 +31,9 @@ public class TestDialogueRepository : IDialogueRepository
     {
         return _inner.All(cancellationToken);
     }
+
+    public Task Remove(Dialogue dialogue, CancellationToken cancellationToken)
+    {
+        return _inner.Remove(dialogue, cancellationToken);
+    }
 }

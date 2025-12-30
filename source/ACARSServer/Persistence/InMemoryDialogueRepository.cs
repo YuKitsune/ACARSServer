@@ -42,4 +42,12 @@ public class InMemoryDialogueRepository : IDialogueRepository
             return _dialogues.ToArray();
         }
     }
+
+    public async Task Remove(Dialogue dialogue, CancellationToken cancellationToken)
+    {
+        using (await _semaphore.LockAsync(cancellationToken))
+        {
+            _dialogues.Remove(dialogue);
+        }
+    }
 }

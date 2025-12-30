@@ -15,4 +15,5 @@ public interface IDialogueRepository
         CancellationToken cancellationToken);
 
     Task<Dialogue[]> All(CancellationToken cancellationToken);
+    Task Remove(Dialogue dialogue, CancellationToken cancellationToken);
 }
