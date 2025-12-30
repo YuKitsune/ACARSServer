@@ -26,4 +26,9 @@ public class TestDialogueRepository : IDialogueRepository
             messageId,
             cancellationToken);
     }
+
+    public Task<Dialogue[]> All(CancellationToken cancellationToken)
+    {
+        return _inner.All(cancellationToken);
+    }
 }

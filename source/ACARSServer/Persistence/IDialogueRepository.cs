@@ -1,3 +1,4 @@
+using System.Collections;
 using ACARSServer.Model;
 
 namespace ACARSServer.Persistence;
@@ -12,4 +13,6 @@ public interface IDialogueRepository
         string aircraftCallsign,
         int messageId,
         CancellationToken cancellationToken);
+
+    Task<Dialogue[]> All(CancellationToken cancellationToken);
 }

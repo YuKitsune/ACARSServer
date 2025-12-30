@@ -44,6 +44,11 @@ public class Dialogue
         ProcessMessage(message);
     }
 
+    public void Archive(DateTimeOffset now)
+    {
+        Archived = now;
+    }
+
     void ProcessMessage(ICpdlcMessage message)
     {
         switch (message)
@@ -54,8 +59,8 @@ public class Dialogue
                     var downlink = _messages.OfType<DownlinkMessage>().FirstOrDefault(dl => dl.MessageId == uplink.MessageReference.Value);
                     if (downlink != null)
                     {
-                        downlink.Close();
-                        downlink.IsAcknowledged = true; // Auto-acknowledge when replying
+                        downlink.Close(uplink.Sent);
+                        downlink.Acknowledge(uplink.Sent); // Auto-acknowledge when replying
                     }
                 }
 
@@ -67,13 +72,14 @@ public class Dialogue
                     var uplink = _messages.OfType<UplinkMessage>().FirstOrDefault(ul => ul.MessageId == downlink.MessageReference.Value);
                     if (uplink != null)
                     {
-                        uplink.Close();
-                        uplink.IsAcknowledged = true; // Auto-acknowledge when pilot responds
+                        uplink.Close(downlink.Received);
                     }
                 }
 
                 break;
         }
+        
+        // TODO: Immediately archive when certain uplinks are added (i.e. UNABLE DUE TO AIRSPACE RESTRICTIONS or UNABLE DUE TO TRAFFIC)
         
         TryClose(message.Time);
     }

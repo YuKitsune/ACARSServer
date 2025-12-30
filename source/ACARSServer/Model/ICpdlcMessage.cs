@@ -6,6 +6,12 @@ public interface ICpdlcMessage
     public int? MessageReference { get; }
     AlertType AlertType { get; }
     DateTimeOffset Time { get; }
+    
+    DateTimeOffset? Closed { get; }
     bool IsClosed { get; }
-    void Close();
+    
+    DateTimeOffset? Acknowledged { get; }
+    bool IsAcknowledged { get; }
+    
+    void Close(DateTimeOffset time);
 }

@@ -1,6 +1,4 @@
-﻿using ACARSServer.Contracts;
-
-namespace ACARSServer.Model;
+﻿namespace ACARSServer.Model;
 
 public class DownlinkMessage(
     int messageId,
@@ -19,15 +17,24 @@ public class DownlinkMessage(
     public AlertType AlertType { get; } = alertType;
     public string Content { get; } = content;
     public DateTimeOffset Received { get; } = received;
-    public bool IsClosed { get; private set; } = responseType == CpdlcDownlinkResponseType.NoResponse; // Downlink messages requiring no response are self-closing
 
-    public bool IsAcknowledged { get; set; }
+    public DateTimeOffset? Closed { get; private set; } = responseType == CpdlcDownlinkResponseType.NoResponse ? received : null; // Downlink messages requiring no response are self-closing
+    public bool IsClosed => Closed is not null;
+
+    public DateTimeOffset? Acknowledged { get; private set; }
+    public bool IsAcknowledged => Acknowledged is not null;
+
     public bool IsControllerLate { get; set; }
 
     DateTimeOffset ICpdlcMessage.Time => Received;
     
-    public void Close()
+    public void Close(DateTimeOffset time)
     {
-        IsClosed = true;
+        Closed = time;
+    }
+
+    public void Acknowledge(DateTimeOffset now)
+    {
+        Acknowledged = now;
     }
 }

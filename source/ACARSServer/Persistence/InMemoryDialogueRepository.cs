@@ -34,4 +34,12 @@ public class InMemoryDialogueRepository : IDialogueRepository
                     d.Messages.Any(m => m.MessageId == messageId));
         }
     }
+
+    public async Task<Dialogue[]> All(CancellationToken cancellationToken)
+    {
+        using (await _semaphore.LockAsync(cancellationToken))
+        {
+            return _dialogues.ToArray();
+        }
+    }
 }

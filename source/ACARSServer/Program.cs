@@ -20,6 +20,7 @@ builder.Services.AddSingleton<IControllerRepository, InMemoryControllerRepositor
 builder.Services.AddSingleton<ClientManager>();
 builder.Services.AddSingleton<IClientManager>(sp => sp.GetRequiredService<ClientManager>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientManager>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<MessageMonitorService>());
 builder.Services.AddSingleton<IMessageIdProvider, MessageIdProvider>();
 builder.Services.AddSingleton<IAircraftRepository, InMemoryAircraftRepository>();
 builder.Services.AddSingleton<IDialogueRepository, InMemoryDialogueRepository>();

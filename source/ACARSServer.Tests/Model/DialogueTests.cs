@@ -166,7 +166,6 @@ public class DialogueTests
 
         // Assert
         Assert.False(uplink.IsClosed);
-        Assert.False(uplink.IsAcknowledged);
     }
 
     [Fact]

@@ -19,10 +19,14 @@ public class UplinkMessage(
     public AlertType AlertType { get; } = alertType;
     public string Content { get; } = content;
     public DateTimeOffset Sent { get; } = sent;
-    public bool IsClosed { get; private set; } = responseType == CpdlcUplinkResponseType.NoResponse; // Uplink messages requiring no response are self-closing
+    public DateTimeOffset? Closed { get; private set; } = responseType == CpdlcUplinkResponseType.NoResponse ? sent : null; // Uplink messages requiring no response are self-closing
+    public bool IsClosed => Closed is not null;
     public bool ClosedManually { get; private set; }
-    
-    public bool IsAcknowledged { get; set; }
+
+    // Uplinks are automatically acknowledged
+    DateTimeOffset? ICpdlcMessage.Acknowledged => Sent;
+    public bool IsAcknowledged => true;
+
     // public bool CanAction { get; set; }
     // public bool Actioned { get; set; }
     public bool IsPilotLate { get; set; }
@@ -30,11 +34,11 @@ public class UplinkMessage(
 
     DateTimeOffset ICpdlcMessage.Time => Sent;
     
-    public void Close(bool manual = false)
+    public void Close(DateTimeOffset time, bool manual = false)
     {
-        IsClosed = true;
+        Closed = time;
         ClosedManually = manual;
     }
 
-    void ICpdlcMessage.Close() => Close();
+    void ICpdlcMessage.Close(DateTimeOffset time) => Close(time, false);
 }
