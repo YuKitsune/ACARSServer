@@ -35,11 +35,34 @@ public class InMemoryDialogueRepository : IDialogueRepository
         }
     }
 
+    public async Task<Dialogue?> FindById(Guid id, CancellationToken cancellationToken)
+    {
+        using (await _semaphore.LockAsync(cancellationToken))
+        {
+            return _dialogues.FirstOrDefault(d => d.Id == id);
+        }
+    }
+
     public async Task<Dialogue[]> All(CancellationToken cancellationToken)
     {
         using (await _semaphore.LockAsync(cancellationToken))
         {
             return _dialogues.ToArray();
+        }
+    }
+
+    public async Task<Dialogue[]> AllForStation(
+        string flightSimulationNetwork,
+        string stationIdentifier,
+        CancellationToken cancellationToken)
+    {
+        using (await _semaphore.LockAsync(cancellationToken))
+        {
+            return _dialogues
+                .Where(d =>
+                    d.FlightSimulationNetwork == flightSimulationNetwork &&
+                    d.StationIdentifier == stationIdentifier)
+                .ToArray();
         }
     }
 

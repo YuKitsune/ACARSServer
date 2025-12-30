@@ -1,6 +1,7 @@
-using ACARSServer.Contracts;
 using ACARSServer.Hubs;
+using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
+using ACARSServer.Model;
 using ACARSServer.Persistence;
 using ACARSServer.Services;
 using MediatR;
@@ -13,6 +14,7 @@ public class AircraftLostNotificationHandler(
     IControllerRepository controllerRepository,
     IHubContext<ControllerHub> hubContext,
     IMessageIdProvider messageIdProvider,
+    IClock clock,
     ILogger logger)
     : INotificationHandler<AircraftLost>
 {
@@ -66,12 +68,14 @@ public class AircraftLostNotificationHandler(
             notification.Callsign,
             cancellationToken);
 
-        var errorDownlink = new CpdlcDownlink(
+        var errorDownlink = new DownlinkMessage(
             messageId,
-            notification.Callsign,
             null,
-            CpdlcDownlinkResponseType.NoResponse,
-            "ERROR CONNECTION TIMED OUT");
+            notification.Callsign,
+            CpdlcDownlinkResponseType.ResponseRequired,
+            AlertType.Low,
+            "ERROR CONNECTION TIMED OUT",
+            clock.UtcNow());
 
         var controllerConnectionIds = controllers.Select(c => c.ConnectionId).ToArray();
 

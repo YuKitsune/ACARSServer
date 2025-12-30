@@ -15,6 +15,7 @@ public class DownlinkReceivedNotificationHandler(
     IControllerRepository controllerRepository,
     IDialogueRepository dialogueRepository,
     IHubContext<ControllerHub> hubContext,
+    IPublisher publisher,
     ILogger logger)
     : INotificationHandler<DownlinkReceivedNotification>
 {
@@ -101,24 +102,11 @@ public class DownlinkReceivedNotificationHandler(
             dialogue.AddMessage(notification.Downlink);
         }
 
-        var controllers = await controllerRepository.All(
-            notification.FlightSimulationNetwork,
-            notification.StationIdentifier,
-            cancellationToken);
+        // Publish DialogueChangedNotification instead of broadcasting directly
+        await publisher.Publish(new DialogueChangedNotification(dialogue), cancellationToken);
 
-        if (controllers.Length == 0)
-        {
-            logger.Information("No controllers found for downlink from {From}", notification.Downlink.Sender);
-            return;
-        }
-
-        // Broadcast to all controllers connected to the station
-        // TODO: Filter by jurisdiction.
-        //  Plugin needs to ignore messages from flights not assumed.
-        await hubContext.Clients
-            .Clients(controllers.Select(c => c.ConnectionId))
-            .SendAsync("DownlinkReceived", notification.Downlink, cancellationToken);
-
-        logger.Information("Relayed downlink from {From} to {StationIdentifier}", notification.Downlink.Sender, notification.StationIdentifier);
+        logger.Information(
+            "Published dialogue change notification for downlink from {From}",
+            notification.Downlink.Sender);
     }
 }

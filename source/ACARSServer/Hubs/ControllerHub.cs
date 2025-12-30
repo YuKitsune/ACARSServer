@@ -10,6 +10,7 @@ namespace ACARSServer.Hubs;
 
 public class ControllerHub(
     IControllerRepository controllerRepository,
+    IDialogueRepository dialogueRepository,
     IMediator mediator,
     ILogger logger)
     : Hub
@@ -116,6 +117,56 @@ public class ControllerHub(
 
         var query = new GetConnectedAircraftRequest(controller.FlightSimulationNetwork, controller.StationIdentifier);
         return await mediator.Send(query);
+    }
+
+    public async Task AcknowledgeDownlink(Guid dialogueId, int downlinkMessageId)
+    {
+        var command = new AcknowledgeDownlinkCommand(dialogueId, downlinkMessageId);
+        await mediator.Send(command);
+
+        _logger.Information(
+            "Controller acknowledged downlink {MessageId} in dialogue {DialogueId}",
+            downlinkMessageId,
+            dialogueId);
+    }
+
+    public async Task ArchiveDialogue(Guid dialogueId)
+    {
+        var command = new ArchiveDialogueCommand(dialogueId);
+        await mediator.Send(command);
+
+        _logger.Information(
+            "Controller manually archived dialogue {DialogueId}",
+            dialogueId);
+    }
+
+    public async Task<DialogueDto[]> GetAllDialogues()
+    {
+        var controller = await controllerRepository.FindByConnectionId(Context.ConnectionId, CancellationToken.None);
+        if (controller is null)
+        {
+            _logger.Warning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
+            throw new InvalidOperationException($"Controller not found for connection {Context.ConnectionId}");
+        }
+        
+        var dialogues = await GetAllDialoguesFor(controller, CancellationToken.None);
+        return dialogues;
+    }
+
+    // TODO: Move this into a MediatR handler
+    async Task<DialogueDto[]> GetAllDialoguesFor(ControllerInfo controller, CancellationToken cancellationToken)
+    {
+        var dialogues = await dialogueRepository.AllForStation(
+            controller.FlightSimulationNetwork,
+            controller.StationIdentifier,
+            cancellationToken);
+
+        _logger.Information(
+            "Sending {DialogueCount} dialogues to controller {Callsign}",
+            dialogues.Length,
+            controller.Callsign);
+
+        return dialogues.Select(DialogueConverter.ToDto).ToArray();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

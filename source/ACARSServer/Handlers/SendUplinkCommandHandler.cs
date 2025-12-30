@@ -13,6 +13,7 @@ public class SendUplinkCommandHandler(
     IClientManager clientManager,
     IMessageIdProvider messageIdProvider,
     IDialogueRepository dialogueRepository,
+    IPublisher publisher,
     IClock clock,
     ILogger logger)
     : IRequestHandler<SendUplinkCommand, SendUplinkResult>
@@ -61,6 +62,9 @@ public class SendUplinkCommandHandler(
         {
             dialogue.AddMessage(uplinkMessage);
         }
+
+        // Publish dialogue change notification
+        await publisher.Publish(new DialogueChangedNotification(dialogue), cancellationToken);
 
         await client.Send(uplinkMessage, cancellationToken);
         logger.Information(

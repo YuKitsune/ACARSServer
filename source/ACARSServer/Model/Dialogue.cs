@@ -23,7 +23,8 @@ public class Dialogue
         Opened = firstMessage.Time;
         AddMessage(firstMessage);
     }
-    
+
+    public Guid Id { get; } = Guid.NewGuid();
     public string FlightSimulationNetwork { get; }
     public string StationIdentifier { get; }
 
@@ -47,6 +48,17 @@ public class Dialogue
     public void Archive(DateTimeOffset now)
     {
         Archived = now;
+    }
+
+    public void AcknowledgeDownlink(int downlinkMessageId, DateTimeOffset now)
+    {
+        var downlink = _messages.OfType<DownlinkMessage>()
+            .FirstOrDefault(dl => dl.MessageId == downlinkMessageId);
+
+        if (downlink is null)
+            throw new InvalidOperationException($"Downlink message {downlinkMessageId} not found in dialogue");
+
+        downlink.Acknowledge(now);
     }
 
     void ProcessMessage(ICpdlcMessage message)

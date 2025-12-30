@@ -26,9 +26,9 @@ builder.Services.AddSingleton<IAircraftRepository, InMemoryAircraftRepository>()
 builder.Services.AddSingleton<IDialogueRepository, InMemoryDialogueRepository>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddSignalR()
-    .AddJsonProtocol(options =>
+    .AddNewtonsoftJsonProtocol(options =>
     {
-        options.PayloadSerializerOptions.TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver();
+        options.PayloadSerializerSettings.TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Auto;
     });
 builder.Services.AddRazorPages();
 

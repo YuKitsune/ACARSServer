@@ -6,7 +6,7 @@ namespace ACARSServer.Persistence;
 public interface IDialogueRepository
 {
     Task Add(Dialogue dialogue, CancellationToken cancellationToken);
-    
+
     Task<Dialogue?> FindDialogueForMessage(
         string flightSimulationNetwork,
         string stationIdentifier,
@@ -14,6 +14,14 @@ public interface IDialogueRepository
         int messageId,
         CancellationToken cancellationToken);
 
+    Task<Dialogue?> FindById(Guid id, CancellationToken cancellationToken);
+
     Task<Dialogue[]> All(CancellationToken cancellationToken);
+
+    Task<Dialogue[]> AllForStation(
+        string flightSimulationNetwork,
+        string stationIdentifier,
+        CancellationToken cancellationToken);
+
     Task Remove(Dialogue dialogue, CancellationToken cancellationToken);
 }
