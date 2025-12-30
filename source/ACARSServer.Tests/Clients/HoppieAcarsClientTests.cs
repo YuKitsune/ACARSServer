@@ -169,16 +169,19 @@ public class HoppieAcarsClientTests : IDisposable
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
+        var clock = new TestClock();
         var client = CreateClient(httpHandler);
     
         await client.Connect(CancellationToken.None);
-    
-        var message = new CpdlcUplink(
+
+        var message = new UplinkMessage(
             1,
-            "UAL123",
             null,
+            "UAL123",
             CpdlcUplinkResponseType.NoResponse,
-            "END SERVICE");
+            AlertType.None,
+            "END SERVICE",
+            clock.UtcNow());
     
         // Act
         await client.Send(message, CancellationToken.None);
@@ -325,7 +328,7 @@ public class HoppieAcarsClientTests : IDisposable
         var message = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message);
+        var cpdlcMessage = Assert.IsType<DownlinkMessage>(message);
         Assert.Equal("REQUEST CLIMB DUE TO A/C PERFORMANCE", cpdlcMessage.Content);
     }
 
