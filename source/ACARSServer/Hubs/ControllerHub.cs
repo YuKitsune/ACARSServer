@@ -1,6 +1,7 @@
 using ACARSServer.Contracts;
 using ACARSServer.Messages;
 using ACARSServer.Model;
+using ACARSServer.Persistence;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.SignalR;
 namespace ACARSServer.Hubs;
 
 public class ControllerHub(
-    IControllerManager controllerManager,
+    IControllerRepository controllerRepository,
     IMediator mediator,
     ILogger logger)
     : Hub
@@ -53,7 +54,7 @@ public class ControllerHub(
             "TEST");
             // validationResult.VatsimCid);
 
-        controllerManager.AddController(controller);
+        await controllerRepository.Add(controller, Context.GetHttpContext()?.RequestAborted ?? CancellationToken.None);
 
         _logger.Information(
             "Controller connected: {Callsign} (VATSIM CID: {VatsimCid}) on {Network}/{StationId} (ConnectionId: {ConnectionId})",
@@ -75,7 +76,7 @@ public class ControllerHub(
         CpdlcUplinkResponseType responseType,
         string content)
     {
-        var controller = controllerManager.GetController(Context.ConnectionId);
+        var controller = await controllerRepository.FindByConnectionId(Context.ConnectionId, CancellationToken.None);
         if (controller is null)
         {
             _logger.Warning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
@@ -96,7 +97,7 @@ public class ControllerHub(
 
     public async Task<GetConnectedAircraftResult> GetConnectedAircraft()
     {
-        var controller = controllerManager.GetController(Context.ConnectionId);
+        var controller = await controllerRepository.FindByConnectionId(Context.ConnectionId, CancellationToken.None);
         if (controller is null)
         {
             _logger.Warning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
@@ -109,10 +110,10 @@ public class ControllerHub(
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var controller = controllerManager.GetController(Context.ConnectionId);
+        var controller = await controllerRepository.FindByConnectionId(Context.ConnectionId, CancellationToken.None);
         if (controller is not null)
         {
-            controllerManager.RemoveController(Context.ConnectionId);
+            await controllerRepository.RemoveByConnectionId(Context.ConnectionId,  CancellationToken.None);
             _logger.Information(
                 "Controller disconnected: {Callsign} (ConnectionId: {ConnectionId})",
                 controller.Callsign, Context.ConnectionId);

@@ -16,13 +16,13 @@ public class AircraftLostNotificationHandlerTests
     public async Task Handle_RemovesAircraftFromTracking()
     {
         // Arrange
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
         aircraft.RequestLogon(DateTimeOffset.UtcNow);
         aircraft.AcceptLogon(DateTimeOffset.UtcNow);
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var messageIdProvider = new TestMessageIdProvider();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
@@ -38,26 +38,26 @@ public class AircraftLostNotificationHandlerTests
         var notification = new AircraftLost("VATSIM", "YBBB", "UAL123");
 
         // Assert - aircraft exists before handling
-        Assert.NotNull(aircraftManager.Get("VATSIM", "YBBB", "UAL123"));
+        Assert.NotNull(await aircraftManager.Find("VATSIM", "YBBB", "UAL123", CancellationToken.None));
 
         // Act
         await handler.Handle(notification, CancellationToken.None);
 
         // Assert - aircraft is removed after handling
-        Assert.Null(aircraftManager.Get("VATSIM", "YBBB", "UAL123"));
+        Assert.Null(await aircraftManager.Find("VATSIM", "YBBB", "UAL123", CancellationToken.None));
     }
 
     [Fact]
     public async Task Handle_SendsErrorDownlinkAndDisconnectionNotification()
     {
         // Arrange
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
         aircraft.RequestLogon(DateTimeOffset.UtcNow);
         aircraft.AcceptLogon(DateTimeOffset.UtcNow);
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var controller1 = new ControllerInfo(
             Guid.NewGuid(),
             "ConnectionId-1",
@@ -72,8 +72,8 @@ public class AircraftLostNotificationHandlerTests
             "YBBB",
             "BN-OCN_CTR",
             "7654321");
-        controllerManager.AddController(controller1);
-        controllerManager.AddController(controller2);
+        await controllerManager.Add(controller1, CancellationToken.None);
+        await controllerManager.Add(controller2, CancellationToken.None);
 
         var messageIdProvider = new TestMessageIdProvider();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
@@ -121,13 +121,13 @@ public class AircraftLostNotificationHandlerTests
     public async Task Handle_DoesNotNotifyControllersOnDifferentNetwork()
     {
         // Arrange
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
         aircraft.RequestLogon(DateTimeOffset.UtcNow);
         aircraft.AcceptLogon(DateTimeOffset.UtcNow);
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var vatsimController = new ControllerInfo(
             Guid.NewGuid(),
             "conn-vatsim",
@@ -142,8 +142,8 @@ public class AircraftLostNotificationHandlerTests
             "YBBB",
             "BN-TSN_FSS",
             "7654321");
-        controllerManager.AddController(vatsimController);
-        controllerManager.AddController(ivaoController);
+        await controllerManager.Add(vatsimController, CancellationToken.None);
+        await controllerManager.Add(ivaoController, CancellationToken.None);
 
         var messageIdProvider = new TestMessageIdProvider();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
@@ -174,8 +174,8 @@ public class AircraftLostNotificationHandlerTests
     public async Task Handle_DoesNotThrowWhenAircraftNotFound()
     {
         // Arrange
-        var aircraftManager = new TestAircraftManager();
-        var controllerManager = new TestControllerManager();
+        var aircraftManager = new TestAircraftRepository();
+        var controllerManager = new TestControllerRepository();
         var messageIdProvider = new TestMessageIdProvider();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
 
@@ -199,13 +199,13 @@ public class AircraftLostNotificationHandlerTests
     public async Task Handle_DoesNotNotifyWhenNoControllersConnected()
     {
         // Arrange
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
         aircraft.RequestLogon(DateTimeOffset.UtcNow);
         aircraft.AcceptLogon(DateTimeOffset.UtcNow);
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var messageIdProvider = new TestMessageIdProvider();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
@@ -224,7 +224,7 @@ public class AircraftLostNotificationHandlerTests
         await handler.Handle(notification, CancellationToken.None);
 
         // Assert - aircraft should still be removed
-        Assert.Null(aircraftManager.Get("VATSIM", "YBBB", "UAL123"));
+        Assert.Null(await aircraftManager.Find("VATSIM", "YBBB", "UAL123", CancellationToken.None));
 
         // Assert - no SignalR notification should be sent
         hubContext.Clients.DidNotReceive().Clients(Arg.Any<IReadOnlyList<string>>());

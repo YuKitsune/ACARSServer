@@ -11,7 +11,7 @@ public class GetConnectedAircraftRequestHandlerTests
     public async Task Handle_ReturnsAllAircraftForStation()
     {
         // Arrange
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var handler = new GetConnectedAircraftRequestHandler(aircraftManager);
 
         // Add test aircraft
@@ -22,7 +22,7 @@ public class GetConnectedAircraftRequestHandlerTests
             DataAuthorityState.CurrentDataAuthority);
         aircraft1.RequestLogon(DateTimeOffset.UtcNow);
         aircraft1.AcceptLogon(DateTimeOffset.UtcNow);
-        aircraftManager.Add(aircraft1);
+        await aircraftManager.Add(aircraft1, CancellationToken.None);
 
         var aircraft2 = new AircraftConnection(
             "QFA456",
@@ -30,7 +30,7 @@ public class GetConnectedAircraftRequestHandlerTests
             "VATSIM",
             DataAuthorityState.CurrentDataAuthority);
         aircraft2.RequestLogon(DateTimeOffset.UtcNow);
-        aircraftManager.Add(aircraft2);
+        await aircraftManager.Add(aircraft2, CancellationToken.None);
 
         // Different station - should not be returned
         var aircraft3 = new AircraftConnection(
@@ -39,7 +39,7 @@ public class GetConnectedAircraftRequestHandlerTests
             "VATSIM",
             DataAuthorityState.CurrentDataAuthority);
         aircraft3.RequestLogon(DateTimeOffset.UtcNow);
-        aircraftManager.Add(aircraft3);
+        await aircraftManager.Add(aircraft3, CancellationToken.None);
 
         var query = new GetConnectedAircraftRequest("VATSIM", "YBBB");
 
@@ -58,7 +58,7 @@ public class GetConnectedAircraftRequestHandlerTests
     public async Task Handle_ReturnsEmptyArrayWhenNoAircraft()
     {
         // Arrange
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var handler = new GetConnectedAircraftRequestHandler(aircraftManager);
 
         var query = new GetConnectedAircraftRequest("VATSIM", "YBBB");
@@ -75,7 +75,7 @@ public class GetConnectedAircraftRequestHandlerTests
     public async Task Handle_IncludesAllConnectionState()
     {
         // Arrange
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var handler = new GetConnectedAircraftRequestHandler(aircraftManager);
 
         var aircraft = new AircraftConnection(
@@ -85,7 +85,7 @@ public class GetConnectedAircraftRequestHandlerTests
             DataAuthorityState.CurrentDataAuthority);
         aircraft.RequestLogon(DateTimeOffset.UtcNow);
         aircraft.AcceptLogon(DateTimeOffset.UtcNow);
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
         var query = new GetConnectedAircraftRequest("VATSIM", "YBBB");
 

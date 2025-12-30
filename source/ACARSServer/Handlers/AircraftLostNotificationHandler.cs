@@ -1,7 +1,7 @@
 using ACARSServer.Contracts;
 using ACARSServer.Hubs;
 using ACARSServer.Messages;
-using ACARSServer.Model;
+using ACARSServer.Persistence;
 using ACARSServer.Services;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
@@ -9,8 +9,8 @@ using Microsoft.AspNetCore.SignalR;
 namespace ACARSServer.Handlers;
 
 public class AircraftLostNotificationHandler(
-    IAircraftManager aircraftManager,
-    IControllerManager controllerManager,
+    IAircraftRepository aircraftRepository,
+    IControllerRepository controllerRepository,
     IHubContext<ControllerHub> hubContext,
     IMessageIdProvider messageIdProvider,
     ILogger logger)
@@ -18,10 +18,11 @@ public class AircraftLostNotificationHandler(
 {
     public async Task Handle(AircraftLost notification, CancellationToken cancellationToken)
     {
-        var aircraft = aircraftManager.Get(
+        var aircraft = await aircraftRepository.Find(
             notification.FlightSimulationNetwork,
             notification.StationId,
-            notification.Callsign);
+            notification.Callsign,
+            cancellationToken);
 
         if (aircraft is null)
         {
@@ -34,10 +35,11 @@ public class AircraftLostNotificationHandler(
         }
 
         // Remove aircraft from tracking
-        aircraftManager.Remove(
+        await aircraftRepository.Remove(
             notification.FlightSimulationNetwork,
             notification.StationId,
-            notification.Callsign);
+            notification.Callsign,
+            cancellationToken);
 
         logger.Information(
             "Aircraft {Callsign} lost on {Network}/{StationId}",
@@ -46,11 +48,9 @@ public class AircraftLostNotificationHandler(
             notification.StationId);
 
         // Find all controllers on the same network and station
-        var controllers = controllerManager.Controllers
-            .Where(c =>
-                c.FlightSimulationNetwork == notification.FlightSimulationNetwork &&
-                c.StationIdentifier == notification.StationId)
-            .ToArray();
+        var controllers = await controllerRepository.All(
+            notification.FlightSimulationNetwork,
+            notification.StationId, cancellationToken);
 
         if (!controllers.Any())
         {

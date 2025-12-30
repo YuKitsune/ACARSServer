@@ -1,11 +1,9 @@
 using ACARSServer.Clients;
-using ACARSServer.Data;
 using ACARSServer.Hubs;
 using ACARSServer.Infrastructure;
-using ACARSServer.Model;
+using ACARSServer.Persistence;
 using ACARSServer.Services;
 using DotNetEnv;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
 
@@ -17,18 +15,13 @@ builder.Configuration.AddEnvironmentVariables();
 
 ConfigureSerilog(builder);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Data Source=acars.db"));
-
 builder.Services.AddSingleton<IClock, SystemClock>();
-builder.Services.AddSingleton<IControllerManager, ControllerManager>();
+builder.Services.AddSingleton<IControllerRepository, InMemoryControllerRepository>();
 builder.Services.AddSingleton<ClientManager>();
 builder.Services.AddSingleton<IClientManager>(sp => sp.GetRequiredService<ClientManager>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ClientManager>());
-builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddSingleton<IMessageIdProvider, MessageIdProvider>();
-builder.Services.AddSingleton<IAircraftManager, AircraftManager>();
+builder.Services.AddSingleton<IAircraftRepository, InMemoryAircraftRepository>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddSignalR()
     .AddJsonProtocol(options =>
@@ -41,20 +34,12 @@ builder.Services.AddHostedService<AircraftConnectionWatchdog>();
 
 var app = builder.Build();
 
-// Ensure migrations have executed
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-}
-
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
 app.MapRazorPages();
 app.MapHub<ControllerHub>("/hubs/controller");
-app.MapHub<PublicStatsHub>("/hubs/public-stats");
 
 app.Run();
 return;

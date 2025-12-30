@@ -2,11 +2,12 @@ using ACARSServer.Contracts;
 using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
 using ACARSServer.Model;
+using ACARSServer.Persistence;
 using MediatR;
 
 namespace ACARSServer.Handlers;
 
-public class LogonCommandHandler(IAircraftManager aircraftManager, IClock clock, IMediator mediator)
+public class LogonCommandHandler(IAircraftRepository aircraftRepository, IClock clock, IMediator mediator)
     : IRequestHandler<LogonCommand>
 {
     public async Task Handle(LogonCommand request, CancellationToken cancellationToken)
@@ -22,7 +23,7 @@ public class LogonCommandHandler(IAircraftManager aircraftManager, IClock clock,
         // TODO: Perform validation
         // TODO: What if there are no controllers online?
         
-        aircraftManager.Add(aircraft);
+        await aircraftRepository.Add(aircraft, cancellationToken);
 
         // Immediately accept it for now
         aircraft.AcceptLogon(clock.UtcNow());

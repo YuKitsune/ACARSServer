@@ -1,20 +1,21 @@
 using ACARSServer.Contracts;
 using ACARSServer.Messages;
-using ACARSServer.Model;
+using ACARSServer.Persistence;
 using MediatR;
 
 namespace ACARSServer.Handlers;
 
-public class GetConnectedAircraftRequestHandler(IAircraftManager aircraftManager)
+public class GetConnectedAircraftRequestHandler(IAircraftRepository aircraftRepository)
     : IRequestHandler<GetConnectedAircraftRequest, GetConnectedAircraftResult>
 {
-    public Task<GetConnectedAircraftResult> Handle(
+    public async Task<GetConnectedAircraftResult> Handle(
         GetConnectedAircraftRequest request,
         CancellationToken cancellationToken)
     {
-        var aircraft = aircraftManager.All(
+        var aircraft = await aircraftRepository.All(
             request.FlightSimulationNetwork,
-            request.StationIdentifier);
+            request.StationIdentifier,
+            cancellationToken);
 
         var aircraftInfo = aircraft
             .Select(a => new ConnectedAircraftInfo(
@@ -24,6 +25,6 @@ public class GetConnectedAircraftRequestHandler(IAircraftManager aircraftManager
                 a.DataAuthorityState))
             .ToArray();
 
-        return Task.FromResult(new GetConnectedAircraftResult(aircraftInfo));
+        return new GetConnectedAircraftResult(aircraftInfo);
     }
 }

@@ -3,16 +3,17 @@ using ACARSServer.Hubs;
 using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
 using ACARSServer.Model;
+using ACARSServer.Persistence;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ACARSServer.Handlers;
 
 public class DownlinkReceivedNotificationHandler(
-    IAircraftManager aircraftManager,
+    IAircraftRepository aircraftRepository,
     IMediator mediator,
     IClock clock,
-    IControllerManager controllerManager,
+    IControllerRepository controllerRepository,
     IHubContext<ControllerHub> hubContext,
     ILogger logger)
     : INotificationHandler<DownlinkReceivedNotification>
@@ -32,10 +33,12 @@ public class DownlinkReceivedNotificationHandler(
             return;
         }
 
-        var aircraftConnection = aircraftManager.Get(
+        var aircraftConnection = await aircraftRepository.Find(
             notification.FlightSimulationNetwork,
             notification.StationIdentifier,
-            notification.Downlink.Sender);
+            notification.Downlink.Sender,
+            cancellationToken);
+
         if (aircraftConnection is null)
         {
             // Connection not known, reject.
@@ -74,11 +77,10 @@ public class DownlinkReceivedNotificationHandler(
         
         aircraftConnection.LogLastSeen(clock.UtcNow());
 
-        var controllers = controllerManager.Controllers
-            .Where(c =>
-                c.FlightSimulationNetwork == notification.FlightSimulationNetwork &&
-                c.StationIdentifier == notification.StationIdentifier)
-            .ToArray();
+        var controllers = await controllerRepository.All(
+            notification.FlightSimulationNetwork,
+            notification.StationIdentifier,
+            cancellationToken);
 
         if (controllers.Length == 0)
         {

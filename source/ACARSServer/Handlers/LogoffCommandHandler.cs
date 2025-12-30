@@ -1,15 +1,21 @@
 using ACARSServer.Messages;
-using ACARSServer.Model;
+using ACARSServer.Persistence;
 using MediatR;
 
 namespace ACARSServer.Handlers;
 
-public class LogoffCommandHandler(IAircraftManager aircraftManager, IMediator mediator)
+public class LogoffCommandHandler(IAircraftRepository aircraftRepository, IMediator mediator)
     : IRequestHandler<LogoffCommand>
 {
     public async Task Handle(LogoffCommand request, CancellationToken cancellationToken)
     {
-        if (!aircraftManager.Remove(request.FlightSimulationNetwork, request.StationId, request.Callsign))
+        var didRemove = await aircraftRepository.Remove(
+            request.FlightSimulationNetwork,
+            request.StationId,
+            request.Callsign,
+            cancellationToken);
+        
+        if (!didRemove)
             return;
 
         await mediator.Publish(

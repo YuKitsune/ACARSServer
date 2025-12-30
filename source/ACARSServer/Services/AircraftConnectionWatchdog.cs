@@ -2,7 +2,7 @@ using ACARSServer.Clients;
 using ACARSServer.Exceptions;
 using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
-using ACARSServer.Model;
+using ACARSServer.Persistence;
 using MediatR;
 
 namespace ACARSServer.Services;
@@ -17,7 +17,7 @@ public class AircraftConnectionWatchdog : IHostedService
 #endif
     
     readonly IClientManager _clientManager;
-    readonly IAircraftManager _aircraftManager;
+    readonly IAircraftRepository _aircraftRepository;
     readonly IClock _clock;
     readonly IMediator _mediator;
     readonly ILogger _logger;
@@ -27,10 +27,10 @@ public class AircraftConnectionWatchdog : IHostedService
     CancellationTokenSource? _cancellationTokenSource;
     Task? _task;
 
-    public AircraftConnectionWatchdog(IClientManager clientManager, IAircraftManager aircraftManager, IClock clock, IMediator mediator, ILogger logger, IConfiguration configuration)
+    public AircraftConnectionWatchdog(IClientManager clientManager, IAircraftRepository aircraftRepository, IClock clock, IMediator mediator, ILogger logger, IConfiguration configuration)
     {
         _clientManager = clientManager;
-        _aircraftManager = aircraftManager;
+        _aircraftRepository = aircraftRepository;
         _clock = clock;
         _logger = logger;
         _mediator = mediator;
@@ -100,9 +100,10 @@ public class AircraftConnectionWatchdog : IHostedService
                             acarsConfiguration.StationIdentifier,
                             checkTimeoutCancellationTokenSource.Token);
 
-                        var trackedConnections = _aircraftManager.All(
+                        var trackedConnections = await _aircraftRepository.All(
                             acarsConfiguration.FlightSimulationNetwork,
-                            acarsConfiguration.StationIdentifier);
+                            acarsConfiguration.StationIdentifier,
+                            checkTimeoutCancellationTokenSource.Token);
 
                         var activeConnections = await client.ListConnections(checkTimeoutCancellationTokenSource.Token);
                         var lostConnections = trackedConnections.Where(t => !activeConnections.Contains(t.Callsign));

@@ -18,13 +18,13 @@ public class DownlinkReceivedNotificationHandlerTests
     {
         // Arrange
         var clock = new TestClock();
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
         aircraft.RequestLogon(clock.UtcNow());
         aircraft.AcceptLogon(clock.UtcNow());
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var controller1 = new ControllerInfo(
             Guid.NewGuid(),
             "ConnectionId-1",
@@ -39,8 +39,8 @@ public class DownlinkReceivedNotificationHandlerTests
             "YBBB",
             "BN-OCN_CTR",
             "7654321");
-        controllerManager.AddController(controller1);
-        controllerManager.AddController(controller2);
+        await controllerManager.Add(controller1, CancellationToken.None);
+        await controllerManager.Add(controller2, CancellationToken.None);
 
         var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
@@ -88,13 +88,13 @@ public class DownlinkReceivedNotificationHandlerTests
     {
         // Arrange
         var clock = new TestClock();
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
         aircraft.RequestLogon(clock.UtcNow());
         aircraft.AcceptLogon(clock.UtcNow());
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var controller = new ControllerInfo(
             Guid.NewGuid(),
             "ConnectionId-1",
@@ -102,7 +102,7 @@ public class DownlinkReceivedNotificationHandlerTests
             "YMMM",
             "ML-IND_FSS",
             "1234567");
-        controllerManager.AddController(controller);
+        await controllerManager.Add(controller, CancellationToken.None);
 
         var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
@@ -145,13 +145,13 @@ public class DownlinkReceivedNotificationHandlerTests
     {
         // Arrange
         var clock = new TestClock();
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.CurrentDataAuthority);
         aircraft.RequestLogon(clock.UtcNow());
         aircraft.AcceptLogon(clock.UtcNow());
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var vatsimController = new ControllerInfo(
             Guid.NewGuid(),
             "conn-vatsim",
@@ -166,8 +166,8 @@ public class DownlinkReceivedNotificationHandlerTests
             "YBBB",
             "BN-TSN_FSS",
             "7654321");
-        controllerManager.AddController(vatsimController);
-        controllerManager.AddController(ivaoController);
+        await controllerManager.Add(vatsimController, CancellationToken.None);
+        await controllerManager.Add(ivaoController, CancellationToken.None);
 
         var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
@@ -210,13 +210,13 @@ public class DownlinkReceivedNotificationHandlerTests
     {
         // Arrange
         var clock = new TestClock();
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.NextDataAuthority);
         aircraft.RequestLogon(clock.UtcNow());
         aircraft.AcceptLogon(clock.UtcNow());
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var controller = new ControllerInfo(
             Guid.NewGuid(),
             "ConnectionId-1",
@@ -224,7 +224,7 @@ public class DownlinkReceivedNotificationHandlerTests
             "YBBB",
             "BN-TSN_FSS",
             "1234567");
-        controllerManager.AddController(controller);
+        await controllerManager.Add(controller, CancellationToken.None);
 
         var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
@@ -269,13 +269,13 @@ public class DownlinkReceivedNotificationHandlerTests
         var clock = new TestClock();
         clock.SetUtcNow(logonTime);
         
-        var aircraftManager = new TestAircraftManager();
+        var aircraftManager = new TestAircraftRepository();
         var aircraft = new AircraftConnection("UAL123", "YBBB", "VATSIM", DataAuthorityState.NextDataAuthority);
         aircraft.RequestLogon(logonTime);
         aircraft.AcceptLogon(logonTime);
-        aircraftManager.Add(aircraft);
+        await aircraftManager.Add(aircraft, CancellationToken.None);
 
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var controller = new ControllerInfo(
             Guid.NewGuid(),
             "ConnectionId-1",
@@ -283,7 +283,7 @@ public class DownlinkReceivedNotificationHandlerTests
             "YBBB",
             "BN-TSN_FSS",
             "1234567");
-        controllerManager.AddController(controller);
+        await controllerManager.Add(controller, CancellationToken.None);
 
         var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();

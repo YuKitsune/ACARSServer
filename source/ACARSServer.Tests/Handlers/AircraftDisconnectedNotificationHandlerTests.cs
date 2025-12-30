@@ -15,7 +15,7 @@ public class AircraftDisconnectedNotificationHandlerTests
     public async Task Handle_NotifiesControllersOnSameNetworkAndStation()
     {
         // Arrange
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var controller1 = new ControllerInfo(
             Guid.NewGuid(),
             "ConnectionId-1",
@@ -30,8 +30,8 @@ public class AircraftDisconnectedNotificationHandlerTests
             "YBBB",
             "BN-OCN_CTR",
             "7654321");
-        controllerManager.AddController(controller1);
-        controllerManager.AddController(controller2);
+        await controllerManager.Add(controller1, CancellationToken.None);
+        await controllerManager.Add(controller2, CancellationToken.None);
 
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
@@ -64,7 +64,7 @@ public class AircraftDisconnectedNotificationHandlerTests
     public async Task Handle_OnlyNotifiesControllersOnMatchingNetwork()
     {
         // Arrange
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var vatsimController = new ControllerInfo(
             Guid.NewGuid(),
             "conn-vatsim",
@@ -79,8 +79,8 @@ public class AircraftDisconnectedNotificationHandlerTests
             "YBBB",
             "BN-TSN_FSS",
             "7654321");
-        controllerManager.AddController(vatsimController);
-        controllerManager.AddController(ivaoController);
+        await controllerManager.Add(vatsimController, CancellationToken.None);
+        await controllerManager.Add(ivaoController, CancellationToken.None);
 
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
@@ -108,7 +108,7 @@ public class AircraftDisconnectedNotificationHandlerTests
     public async Task Handle_OnlyNotifiesControllersOnMatchingStation()
     {
         // Arrange
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var ybbbController = new ControllerInfo(
             Guid.NewGuid(),
             "conn-ybbb",
@@ -123,8 +123,8 @@ public class AircraftDisconnectedNotificationHandlerTests
             "YMMM",
             "ML-IND_FSS",
             "7654321");
-        controllerManager.AddController(ybbbController);
-        controllerManager.AddController(ymmmController);
+        await controllerManager.Add(ybbbController, CancellationToken.None);
+        await controllerManager.Add(ymmmController, CancellationToken.None);
 
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
@@ -152,7 +152,7 @@ public class AircraftDisconnectedNotificationHandlerTests
     public async Task Handle_DoesNotNotifyWhenNoControllersConnected()
     {
         // Arrange
-        var controllerManager = new TestControllerManager();
+        var controllerManager = new TestControllerRepository();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
         var clientProxy = Substitute.For<IClientProxy>();
         hubContext.Clients.Clients(Arg.Any<IReadOnlyList<string>>()).Returns(clientProxy);

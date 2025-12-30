@@ -1,13 +1,13 @@
 using ACARSServer.Hubs;
 using ACARSServer.Messages;
-using ACARSServer.Model;
+using ACARSServer.Persistence;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ACARSServer.Handlers;
 
 public class AircraftDisconnectedNotificationHandler(
-    IControllerManager controllerManager,
+    IControllerRepository controllerRepository,
     IHubContext<ControllerHub> hubContext,
     ILogger logger)
     : INotificationHandler<AircraftDisconnected>
@@ -21,11 +21,9 @@ public class AircraftDisconnectedNotificationHandler(
             notification.StationId);
 
         // Find all controllers on the same network and station
-        var controllers = controllerManager.Controllers
-            .Where(c =>
-                c.FlightSimulationNetwork == notification.FlightSimulationNetwork &&
-                c.StationIdentifier == notification.StationId)
-            .ToArray();
+        var controllers = await controllerRepository.All(
+            notification.FlightSimulationNetwork,
+            notification.StationId, cancellationToken);
 
         if (!controllers.Any())
         {

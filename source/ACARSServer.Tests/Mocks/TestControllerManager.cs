@@ -1,26 +1,29 @@
 using ACARSServer.Model;
+using ACARSServer.Persistence;
 
 namespace ACARSServer.Tests.Mocks;
 
-public class TestControllerManager : IControllerManager
+public class TestControllerRepository : IControllerRepository
 {
-    private readonly Dictionary<string, ControllerInfo> _controllers = new();
+    private readonly InMemoryControllerRepository _inner = new();
 
-    public List<ControllerInfo> Controllers => _controllers.Values.ToList();
-
-    public void AddController(ControllerInfo controller)
+    public Task Add(ControllerInfo controller, CancellationToken cancellationToken)
     {
-        _controllers[controller.ConnectionId] = controller;
+        return _inner.Add(controller, cancellationToken);
     }
 
-    public void RemoveController(string connectionId)
+    public Task<ControllerInfo?> FindByConnectionId(string connectionId, CancellationToken cancellationToken)
     {
-        _controllers.Remove(connectionId);
+        return _inner.FindByConnectionId(connectionId, cancellationToken);
     }
 
-    public ControllerInfo? GetController(string connectionId)
+    public Task<ControllerInfo[]> All(string flightSimulationNetwork, string stationId, CancellationToken cancellationToken)
     {
-        _controllers.TryGetValue(connectionId, out var controller);
-        return controller;
+        return _inner.All(flightSimulationNetwork, stationId, cancellationToken);
+    }
+
+    public Task<bool> RemoveByConnectionId(string connectionId, CancellationToken cancellationToken)
+    {
+        return _inner.RemoveByConnectionId(connectionId, cancellationToken);
     }
 }
