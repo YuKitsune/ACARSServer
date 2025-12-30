@@ -7,6 +7,7 @@ using ACARSServer.Tests.Mocks;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 using Serilog.Core;
+using CpdlcDownlinkResponseType = ACARSServer.Contracts.CpdlcDownlinkResponseType;
 
 namespace ACARSServer.Tests.Handlers;
 

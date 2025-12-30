@@ -4,7 +4,7 @@ using ACARSServer.Model;
 using ACARSServer.Persistence;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
-
+using CpdlcUplinkResponseType = ACARSServer.Contracts.CpdlcUplinkResponseType;
 
 namespace ACARSServer.Hubs;
 
@@ -83,13 +83,23 @@ public class ControllerHub(
             throw new InvalidOperationException($"Controller not found for connection {Context.ConnectionId}");
         }
 
+        // TODO: Move to converter
+        var modelResponseType = responseType switch
+        {
+            CpdlcUplinkResponseType.NoResponse => Model.CpdlcUplinkResponseType.NoResponse,
+            CpdlcUplinkResponseType.WilcoUnable => Model.CpdlcUplinkResponseType.WilcoUnable,
+            CpdlcUplinkResponseType.AffirmativeNegative => Model.CpdlcUplinkResponseType.AffirmativeNegative,
+            CpdlcUplinkResponseType.Roger => Model.CpdlcUplinkResponseType.Roger,
+            _ => throw new ArgumentOutOfRangeException(nameof(responseType), responseType, null)
+        };
+
         var command = new SendUplinkCommand(
             controller.Callsign,
             controller.FlightSimulationNetwork,
             controller.StationIdentifier,
             recipient,
             replyToDownlinkId,
-            responseType,
+            modelResponseType,
             content);
 
         return await mediator.Send(command);

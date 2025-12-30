@@ -1,4 +1,4 @@
-using ACARSServer.Contracts;
+using ACARSServer.Model;
 using MediatR;
 
 namespace ACARSServer.Messages;
@@ -6,5 +6,5 @@ namespace ACARSServer.Messages;
 public record DownlinkReceivedNotification(
     string FlightSimulationNetwork,
     string StationIdentifier,
-    CpdlcDownlink Downlink)
+    DownlinkMessage Downlink)
     : INotification;

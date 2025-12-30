@@ -1,24 +1,24 @@
 using System.Threading.Channels;
 using ACARSServer.Clients;
-using ACARSServer.Contracts;
+using ACARSServer.Model;
 
 namespace ACARSServer.Tests.Mocks;
 
 public class TestAcarsClient : IAcarsClient
 {
-    private readonly Channel<CpdlcDownlink> _channel = Channel.CreateUnbounded<CpdlcDownlink>();
+    private readonly Channel<DownlinkMessage> _channel = Channel.CreateUnbounded<DownlinkMessage>();
 
-    public ChannelReader<CpdlcDownlink> MessageReader => _channel.Reader;
+    public ChannelReader<DownlinkMessage> MessageReader => _channel.Reader;
 
     public List<string> Connections { get; } = [];
-    public List<IUplinkMessage> SentMessages { get; } = new();
+    public List<UplinkMessage> SentMessages { get; } = new();
 
     public Task Connect(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
 
-    public Task Send(IUplinkMessage message, CancellationToken cancellationToken)
+    public Task Send(UplinkMessage message, CancellationToken cancellationToken)
     {
         SentMessages.Add(message);
         return Task.CompletedTask;

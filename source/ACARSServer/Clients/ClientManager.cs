@@ -178,7 +178,7 @@ public class ClientManager : BackgroundService, IClientManager
     async Task Subscribe(string flightSimulationNetwork, string stationIdentifier, IAcarsClient acarsClient, IMediator mediator, CancellationToken cancellationToken)
     {
         var subscriptionLogger = _logger.ForContext("Network", flightSimulationNetwork).ForContext("Station", stationIdentifier);
-        await foreach (var acarsMessage in acarsClient.MessageReader.ReadAllAsync(cancellationToken))
+        await foreach (var downlinkMessage in acarsClient.MessageReader.ReadAllAsync(cancellationToken))
         {
             // TODO: Make this configurable
             var publishTimeoutCancellationTokenSource = new CancellationTokenSource();
@@ -190,12 +190,12 @@ public class ClientManager : BackgroundService, IClientManager
                     new DownlinkReceivedNotification(
                         flightSimulationNetwork,
                         stationIdentifier,
-                        acarsMessage),
+                        downlinkMessage),
                     publishTimeoutCancellationTokenSource.Token);
             }
             catch (OperationCanceledException) when (publishTimeoutCancellationTokenSource.Token.IsCancellationRequested)
             {
-                subscriptionLogger.Warning("Timeout handling downlink {Downlink}", acarsMessage);
+                subscriptionLogger.Warning("Timeout handling downlink {Downlink}", downlinkMessage);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -203,7 +203,7 @@ public class ClientManager : BackgroundService, IClientManager
             }
             catch (Exception ex)
             {
-                subscriptionLogger.Error(ex, "Failed to relay {MessageType}", acarsMessage.GetType());
+                subscriptionLogger.Error(ex, "Failed to relay {MessageType}", downlinkMessage.GetType());
             }
         }
     }

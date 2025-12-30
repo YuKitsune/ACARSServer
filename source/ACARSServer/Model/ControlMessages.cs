@@ -1,16 +1,14 @@
-using ACARSServer.Contracts;
-
 namespace ACARSServer.Model;
 
 public static class ControlMessages
 {
-    public static bool IsLogonRequest(CpdlcDownlink cpdlcDownlink)
+    public static bool IsLogonRequest(DownlinkMessage downlinkMessage)
     {
-        return cpdlcDownlink.Content == "REQUEST LOGON";
+        return downlinkMessage.Content == "REQUEST LOGON";
     }
 
-    public static bool IsLogoffNotice(CpdlcDownlink cpdlcDownlink)
+    public static bool IsLogoffNotice(DownlinkMessage downlinkMessage)
     {
-        return cpdlcDownlink.Content == "LOGOFF";
+        return downlinkMessage.Content == "LOGOFF";
     }
 }

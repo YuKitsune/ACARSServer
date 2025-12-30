@@ -1,4 +1,3 @@
-using ACARSServer.Contracts;
 using ACARSServer.Hubs;
 using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
@@ -14,6 +13,7 @@ public class DownlinkReceivedNotificationHandler(
     IMediator mediator,
     IClock clock,
     IControllerRepository controllerRepository,
+    IDialogueRepository dialogueRepository,
     IHubContext<ControllerHub> hubContext,
     ILogger logger)
     : INotificationHandler<DownlinkReceivedNotification>
@@ -25,7 +25,7 @@ public class DownlinkReceivedNotificationHandler(
         {
             await mediator.Send(
                 new LogonCommand(
-                    notification.Downlink.Id,
+                    notification.Downlink.MessageId,
                     notification.Downlink.Sender,
                     notification.StationIdentifier,
                     notification.FlightSimulationNetwork),
@@ -48,7 +48,7 @@ public class DownlinkReceivedNotificationHandler(
                     notification.FlightSimulationNetwork,
                     notification.StationIdentifier,
                     notification.Downlink.Sender,
-                    notification.Downlink.Id,
+                    notification.Downlink.MessageId,
                     CpdlcUplinkResponseType.NoResponse,
                     "ERROR. CONNECTION NOT ESTABLISHED."),
                 cancellationToken);
@@ -60,7 +60,7 @@ public class DownlinkReceivedNotificationHandler(
         {
             await mediator.Send(
                 new LogoffCommand(
-                    notification.Downlink.Id,
+                    notification.Downlink.MessageId,
                     notification.Downlink.Sender,
                     notification.StationIdentifier,
                     notification.FlightSimulationNetwork),
@@ -76,6 +76,30 @@ public class DownlinkReceivedNotificationHandler(
         }
         
         aircraftConnection.LogLastSeen(clock.UtcNow());
+
+        // Add or update the dialogue
+        var dialogue = notification.Downlink.MessageReference.HasValue
+            ? await dialogueRepository.FindDialogueForMessage(
+                notification.FlightSimulationNetwork,
+                notification.StationIdentifier,
+                notification.Downlink.Sender,
+                notification.Downlink.MessageReference.Value,
+                cancellationToken)
+            : null;
+
+        if (dialogue is null)
+        {
+            dialogue = new Dialogue(
+                notification.FlightSimulationNetwork,
+                notification.StationIdentifier,
+                notification.Downlink.Sender,
+                notification.Downlink);
+            await dialogueRepository.Add(dialogue, cancellationToken);
+        }
+        else
+        {
+            dialogue.AddMessage(notification.Downlink);
+        }
 
         var controllers = await controllerRepository.All(
             notification.FlightSimulationNetwork,

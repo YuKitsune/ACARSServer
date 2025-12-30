@@ -1,4 +1,3 @@
-using ACARSServer.Contracts;
 using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
 using ACARSServer.Model;

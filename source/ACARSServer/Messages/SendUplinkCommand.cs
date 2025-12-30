@@ -1,4 +1,4 @@
-using ACARSServer.Contracts;
+using ACARSServer.Model;
 using MediatR;
 
 namespace ACARSServer.Messages;
@@ -12,5 +12,5 @@ public record SendUplinkCommand(
     CpdlcUplinkResponseType ResponseType,
     string Content)
     : IRequest<SendUplinkResult>;
-    
-public record SendUplinkResult(CpdlcUplink UplinkMessage);
+
+public record SendUplinkResult(UplinkMessage UplinkMessage);

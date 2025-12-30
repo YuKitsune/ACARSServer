@@ -1,13 +1,20 @@
 using ACARSServer.Clients;
-using ACARSServer.Contracts;
+using ACARSServer.Infrastructure;
 using ACARSServer.Messages;
+using ACARSServer.Model;
+using ACARSServer.Persistence;
 using ACARSServer.Services;
 using MediatR;
 
 
 namespace ACARSServer.Handlers;
 
-public class SendUplinkCommandHandler(IClientManager clientManager, IMessageIdProvider messageIdProvider, ILogger logger)
+public class SendUplinkCommandHandler(
+    IClientManager clientManager,
+    IMessageIdProvider messageIdProvider,
+    IDialogueRepository dialogueRepository,
+    IClock clock,
+    ILogger logger)
     : IRequestHandler<SendUplinkCommand, SendUplinkResult>
 {
     public async Task<SendUplinkResult> Handle(SendUplinkCommand request, CancellationToken cancellationToken)
@@ -22,19 +29,45 @@ public class SendUplinkCommandHandler(IClientManager clientManager, IMessageIdPr
             request.Recipient,
             cancellationToken);
 
-        var uplink = new CpdlcUplink(
+        var uplinkMessage = new UplinkMessage(
             messageId,
-            request.Recipient,
             request.ReplyToDownlinkId,
+            request.Recipient,
             request.ResponseType,
-            request.Content);
+            AlertType.None,
+            request.Content,
+            clock.UtcNow());
 
-        await client.Send(uplink, cancellationToken);
+        // Add or update the dialogue
+        var dialogue = request.ReplyToDownlinkId.HasValue
+            ? await dialogueRepository.FindDialogueForMessage(
+                request.FlightSimulationNetwork,
+                request.StationIdentifier,
+                request.Recipient,
+                request.ReplyToDownlinkId.Value,
+                cancellationToken)
+            : null;
+
+        if (dialogue is null)
+        {
+            dialogue = new Dialogue(
+                request.FlightSimulationNetwork,
+                request.StationIdentifier,
+                request.Recipient,
+                uplinkMessage);
+            await dialogueRepository.Add(dialogue, cancellationToken);
+        }
+        else
+        {
+            dialogue.AddMessage(uplinkMessage);
+        }
+
+        await client.Send(uplinkMessage, cancellationToken);
         logger.Information(
             "Sent CPDLC message from {Sender} to {PilotCallsign}",
             request.Sender,
-            uplink.Recipient);
+            uplinkMessage.Recipient);
 
-        return new SendUplinkResult(uplink);
+        return new SendUplinkResult(uplinkMessage);
     }
 }

@@ -1,6 +1,6 @@
 using System.Net;
 using ACARSServer.Clients;
-using ACARSServer.Contracts;
+using ACARSServer.Model;
 using ACARSServer.Tests.Mocks;
 using Serilog.Core;
 
@@ -55,16 +55,19 @@ public class HoppieAcarsClientTests : IDisposable
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
-        var client = CreateClient(httpHandler);
+        var clock = new TestClock();
+        var client = CreateClient(httpHandler, clock);
 
         await client.Connect(CancellationToken.None);
 
-        var message = new CpdlcUplink(
+        var message = new UplinkMessage(
             1,
-            "UAL123",
             null,
+            "UAL123",
             CpdlcUplinkResponseType.WilcoUnable,
-            "CLIMB TO @FL350@");
+            AlertType.None,
+            "CLIMB TO @FL350@",
+            clock.UtcNow());
 
         // Act
         await client.Send(message, CancellationToken.None);
@@ -89,16 +92,19 @@ public class HoppieAcarsClientTests : IDisposable
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
-        var client = CreateClient(httpHandler);
+        var clock = new TestClock();
+        var client = CreateClient(httpHandler, clock);
 
         await client.Connect(CancellationToken.None);
 
-        var reply = new CpdlcUplink(
+        var reply = new UplinkMessage(
             2,
-            "UAL123",
             5,
+            "UAL123",
             CpdlcUplinkResponseType.NoResponse,
-            "ROGER");
+            AlertType.None,
+            "ROGER",
+            clock.UtcNow());
 
         // Act
         await client.Send(reply, CancellationToken.None);
@@ -125,16 +131,19 @@ public class HoppieAcarsClientTests : IDisposable
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
-        var client = CreateClient(httpHandler);
+        var clock = new TestClock();
+        var client = CreateClient(httpHandler, clock);
 
         await client.Connect(CancellationToken.None);
 
-        var message = new CpdlcUplink(
+        var message = new UplinkMessage(
             1,
-            "UAL123",
             null,
+            "UAL123",
             uplinkResponseType,
-            "TEST");
+            AlertType.None,
+            "TEST",
+            clock.UtcNow());
 
         // Act
         await client.Send(message, CancellationToken.None);
@@ -192,16 +201,19 @@ public class HoppieAcarsClientTests : IDisposable
         // Arrange
         var httpHandler = new TestHttpMessageHandler();
         httpHandler.SetResponse(HttpStatusCode.OK, "ok");
-        var client = CreateClient(httpHandler);
+        var clock = new TestClock();
+        var client = CreateClient(httpHandler, clock);
 
         await client.Connect(CancellationToken.None);
 
-        var message = new CpdlcUplink(
+        var message = new UplinkMessage(
             1,
-            "UAL123",
             null,
+            "UAL123",
             CpdlcUplinkResponseType.WilcoUnable,
-            "CLIMB TO @FL350@");
+            AlertType.None,
+            "CLIMB TO @FL350@",
+            clock.UtcNow());
 
         // Act
         await client.Send(message, CancellationToken.None);
@@ -235,9 +247,9 @@ public class HoppieAcarsClientTests : IDisposable
         var message = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message);
+        var cpdlcMessage = Assert.IsType<DownlinkMessage>(message);
         Assert.Equal("UAL123", cpdlcMessage.Sender);
-        Assert.Equal(5, cpdlcMessage.Id);
+        Assert.Equal(5, cpdlcMessage.MessageId);
         Assert.Equal("REQUEST DESCENT", cpdlcMessage.Content);
         Assert.Equal(CpdlcDownlinkResponseType.ResponseRequired, cpdlcMessage.ResponseType);
     }
@@ -259,10 +271,10 @@ public class HoppieAcarsClientTests : IDisposable
         var message = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var cpdlcReply = Assert.IsType<CpdlcDownlink>(message);
+        var cpdlcReply = Assert.IsType<DownlinkMessage>(message);
         Assert.Equal("UAL123", cpdlcReply.Sender);
-        Assert.Equal(7, cpdlcReply.Id);
-        Assert.Equal(3, cpdlcReply.ReplyToUplinkId);
+        Assert.Equal(7, cpdlcReply.MessageId);
+        Assert.Equal(3, cpdlcReply.MessageReference);
         Assert.Equal("WILCO", cpdlcReply.Content);
         Assert.Equal(CpdlcDownlinkResponseType.NoResponse, cpdlcReply.ResponseType);
     }
@@ -286,11 +298,11 @@ public class HoppieAcarsClientTests : IDisposable
         var message2 = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var cpdlcMessage1 = Assert.IsType<CpdlcDownlink>(message1);
+        var cpdlcMessage1 = Assert.IsType<DownlinkMessage>(message1);
         Assert.Equal("UAL123", cpdlcMessage1.Sender);
         Assert.Equal("REQUEST DESCENT", cpdlcMessage1.Content);
 
-        var cpdlcMessage2 = Assert.IsType<CpdlcDownlink>(message2);
+        var cpdlcMessage2 = Assert.IsType<DownlinkMessage>(message2);
         Assert.Equal("DAL456", cpdlcMessage2.Sender);
         Assert.Equal("REQUEST CLIMB", cpdlcMessage2.Content);
     }
@@ -336,7 +348,7 @@ public class HoppieAcarsClientTests : IDisposable
         var message = await client.MessageReader.ReadAsync(cts.Token);
 
         // Assert
-        var cpdlcMessage = Assert.IsType<CpdlcDownlink>(message);
+        var cpdlcMessage = Assert.IsType<DownlinkMessage>(message);
         Assert.Equal(expectedType, cpdlcMessage.ResponseType);
 
         await client.DisposeAsync();

@@ -1,7 +1,7 @@
 using System.Threading.Channels;
-using ACARSServer.Contracts;
 using ACARSServer.Exceptions;
 using ACARSServer.Infrastructure;
+using ACARSServer.Model;
 
 namespace ACARSServer.Clients;
 
@@ -20,7 +20,7 @@ public class HoppieAcarsClient : IAcarsClient
     readonly IClock _clock;
     readonly ILogger _logger;
     
-    readonly Channel<CpdlcDownlink> _messageChannel = Channel.CreateUnbounded<CpdlcDownlink>();
+    readonly Channel<DownlinkMessage> _messageChannel = Channel.CreateUnbounded<DownlinkMessage>();
     readonly Random _random = Random.Shared;
 
     CancellationTokenSource? _pollCancellationTokenSource;
@@ -29,7 +29,7 @@ public class HoppieAcarsClient : IAcarsClient
 
     bool _disposed;
 
-    public ChannelReader<CpdlcDownlink> MessageReader => _messageChannel.Reader;
+    public ChannelReader<DownlinkMessage> MessageReader => _messageChannel.Reader;
 
     public HoppieAcarsClient(HoppiesConfiguration configuration, HttpClient httpClient, IClock clock, ILogger logger)
     {
@@ -53,14 +53,14 @@ public class HoppieAcarsClient : IAcarsClient
         return Task.CompletedTask;
     }
 
-    public async Task Send(IUplinkMessage message, CancellationToken cancellationToken)
+    public async Task Send(UplinkMessage message, CancellationToken cancellationToken)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(HoppieAcarsClient));
 
-        var messageType = GetMessageType(message);
+        var messageType = "cpdlc";
         var to = message.Recipient;
-        var packet = GetPacket(message);
+        var packet = SerializeCpdlcMessage(message);
 
         var parameters = new Dictionary<string, string>
         {
@@ -346,7 +346,7 @@ public class HoppieAcarsClient : IAcarsClient
         return (headerParts[0], headerParts[1], packet);
     }
 
-    static CpdlcDownlink ParseCpdlcDownlink(string from, string packet)
+    DownlinkMessage ParseCpdlcDownlink(string from, string packet)
     {
         var parts = packet.Split('/', 6);
         if (parts.Length != 6)
@@ -363,7 +363,14 @@ public class HoppieAcarsClient : IAcarsClient
 
         var content = parts[5];
 
-        return new CpdlcDownlink(messageId, from, replyToId, responseType, content);
+        return new DownlinkMessage(
+            messageId,
+            replyToId,
+            from,
+            responseType,
+            AlertType.None,
+            content,
+            _clock.UtcNow());
     }
 
     TimeSpan GetPollInterval()
@@ -379,44 +386,32 @@ public class HoppieAcarsClient : IAcarsClient
 
         return TimeSpan.FromSeconds(_random.Next(45, 76));
     }
-
-    static string GetMessageType(IUplinkMessage message) => message switch
-    {
-        ICpdlcUplink => "cpdlc",
-        _ => throw new NotSupportedException($"Unsupported message type: {message.GetType().Name}")
-    };
-
-    string GetPacket(IUplinkMessage message) => message switch
-    {
-        CpdlcUplink m => SerializeCpdlcMessage(m),
-        _ => throw new NotSupportedException($"Unexpected message type: {message.GetType().Name}")
-    };
     
-    string SerializeCpdlcMessage(CpdlcUplink cpdlcMessage)
+    string SerializeCpdlcMessage(UplinkMessage uplinkMessage)
     {
-        var responseType = cpdlcMessage.ResponseType switch
+        var responseType = uplinkMessage.ResponseType switch
         {
             CpdlcUplinkResponseType.NoResponse => "NE",
             CpdlcUplinkResponseType.WilcoUnable => "WU",
             CpdlcUplinkResponseType.AffirmativeNegative => "AN",
             CpdlcUplinkResponseType.Roger => "R",
-            _ => throw new ArgumentException($"Unexpected CpdlcResponseType: {cpdlcMessage.ResponseType}")
+            _ => throw new ArgumentException($"Unexpected CpdlcResponseType: {uplinkMessage.ResponseType}")
         };
 
-        var replyToId = cpdlcMessage.ReplyToDownlinkId is not null
-            ? cpdlcMessage.ReplyToDownlinkId.ToString()
+        var replyToId = uplinkMessage.MessageReference is not null
+            ? uplinkMessage.MessageReference.ToString()
             : string.Empty;
         
-        var content = GetTranslatedContent(cpdlcMessage);
+        var content = GetTranslatedContent(uplinkMessage);
         
-        return $"/data2/{cpdlcMessage.Id}/{replyToId}/{responseType}/{content}";
+        return $"/data2/{uplinkMessage.MessageId}/{replyToId}/{responseType}/{content}";
     }
 
-    string GetTranslatedContent(ICpdlcUplink cpdlcMessage)
+    string GetTranslatedContent(UplinkMessage uplinkMessage)
     {
-        return _uplinkMessageTranslations.TryGetValue(cpdlcMessage.Content, out var translation)
+        return _uplinkMessageTranslations.TryGetValue(uplinkMessage.Content, out var translation)
             ? translation
-            : cpdlcMessage.Content;
+            : uplinkMessage.Content;
     }
     
     public async ValueTask DisposeAsync()
