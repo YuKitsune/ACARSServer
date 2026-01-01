@@ -3,16 +3,6 @@ using Newtonsoft.Json;
 
 namespace ACARSServer.Contracts;
 
-public interface IUplinkMessage
-{
-    string Recipient { get; }
-}
-
-public interface IDownlinkMessage
-{
-    string Sender { get; }
-}
-
 public enum CpdlcDownlinkResponseType
 {
     NoResponse,
@@ -25,11 +15,6 @@ public enum CpdlcUplinkResponseType
     WilcoUnable,
     AffirmativeNegative,
     Roger
-}
-
-public interface ICpdlcMessageDto
-{
-    int Id { get; }
 }
 
 public record ConnectedAircraftInfo(
@@ -64,7 +49,7 @@ public abstract class CpdlcMessageDto
     public required AlertType AlertType { get; init; }
 
     [JsonProperty]
-    public required DateTimeOffset Time { get; init; }
+    public abstract DateTimeOffset Time { get; }
 
     [JsonProperty]
     public DateTimeOffset? Closed { get; init; }
@@ -76,12 +61,13 @@ public abstract class CpdlcMessageDto
 public class UplinkMessageDto : CpdlcMessageDto
 {
     public override string Type => "uplink";
+    public override DateTimeOffset Time => Sent;
 
     [JsonProperty]
     public required string Recipient { get; init; }
 
     [JsonProperty]
-    public required string ResponseType { get; init; }
+    public required CpdlcUplinkResponseType ResponseType { get; init; }
 
     [JsonProperty]
     public required string Content { get; init; }
@@ -99,12 +85,13 @@ public class UplinkMessageDto : CpdlcMessageDto
 public class DownlinkMessageDto : CpdlcMessageDto
 {
     public override string Type => "downlink";
+    public override DateTimeOffset Time => Received;
 
     [JsonProperty]
     public required string Sender { get; init; }
 
     [JsonProperty]
-    public required string ResponseType { get; init; }
+    public required CpdlcDownlinkResponseType ResponseType { get; init; }
 
     [JsonProperty]
     public required string Content { get; init; }
@@ -125,48 +112,66 @@ public static class DialogueConverter
         return new DialogueDto(
             dialogue.Id,
             dialogue.AircraftCallsign,
-            dialogue.Messages.Select(x => ToMessageDto(x)).ToList(),
+            dialogue.Messages.Select(ToMessageDto).ToList(),
             dialogue.Opened,
             dialogue.Closed,
             dialogue.Archived);
     }
 
-    static CpdlcMessageDto ToMessageDto(ICpdlcMessage message)
+    public static CpdlcMessageDto ToMessageDto(ICpdlcMessage message)
     {
         return message switch
         {
-            UplinkMessage uplink => new UplinkMessageDto
-            {
-                MessageId = uplink.MessageId,
-                MessageReference = uplink.MessageReference,
-                AlertType = uplink.AlertType,
-                Time = uplink.Sent,
-                Closed = uplink.Closed,
-                Acknowledged = uplink.Sent,
-                Recipient = uplink.Recipient,
-                ResponseType = uplink.ResponseType.ToString(),
-                Content = uplink.Content,
-                Sent = uplink.Sent,
-                IsPilotLate = uplink.IsPilotLate,
-                IsTransmissionFailed = uplink.IsTransmissionFailed
-            },
-
-            DownlinkMessage downlink => new DownlinkMessageDto
-            {
-                MessageId = downlink.MessageId,
-                MessageReference = downlink.MessageReference,
-                AlertType = downlink.AlertType,
-                Time = downlink.Received,
-                Closed = downlink.Closed,
-                Acknowledged = downlink.Acknowledged,
-                Sender = downlink.Sender,
-                ResponseType = downlink.ResponseType.ToString(),
-                Content = downlink.Content,
-                Received = downlink.Received,
-                IsControllerLate = downlink.IsControllerLate
-            },
-
+            UplinkMessage uplink => ToDto(uplink),
+            DownlinkMessage downlink => ToDto(downlink),
             _ => throw new ArgumentException($"Unknown message type: {message.GetType()}")
+        };
+    }
+
+    public static UplinkMessageDto ToDto(UplinkMessage uplink)
+    {
+        return new UplinkMessageDto
+        {
+            MessageId = uplink.MessageId,
+            MessageReference = uplink.MessageReference,
+            AlertType = uplink.AlertType,
+            Closed = uplink.Closed,
+            Acknowledged = uplink.Sent,
+            Recipient = uplink.Recipient,
+            ResponseType = uplink.ResponseType switch
+            {
+                Model.CpdlcUplinkResponseType.NoResponse => CpdlcUplinkResponseType.NoResponse,
+                Model.CpdlcUplinkResponseType.WilcoUnable => CpdlcUplinkResponseType.WilcoUnable,
+                Model.CpdlcUplinkResponseType.AffirmativeNegative => CpdlcUplinkResponseType.AffirmativeNegative,
+                Model.CpdlcUplinkResponseType.Roger => CpdlcUplinkResponseType.Roger,
+                _ => throw new ArgumentException($"Unknown uplink response type: {uplink.ResponseType}")
+            },
+            Content = uplink.Content,
+            Sent = uplink.Sent,
+            IsPilotLate = uplink.IsPilotLate,
+            IsTransmissionFailed = uplink.IsTransmissionFailed
+        };
+    }
+
+    public static DownlinkMessageDto ToDto(DownlinkMessage downlink)
+    {
+        return new DownlinkMessageDto
+        {
+            MessageId = downlink.MessageId,
+            MessageReference = downlink.MessageReference,
+            AlertType = downlink.AlertType,
+            Closed = downlink.Closed,
+            Acknowledged = downlink.Acknowledged,
+            Sender = downlink.Sender,
+            ResponseType = downlink.ResponseType switch
+            {
+                Model.CpdlcDownlinkResponseType.NoResponse => CpdlcDownlinkResponseType.NoResponse,
+                Model.CpdlcDownlinkResponseType.ResponseRequired => CpdlcDownlinkResponseType.ResponseRequired,
+                _ => throw new ArgumentException($"Unknown downlink response type: {downlink.ResponseType}")
+            },
+            Content = downlink.Content,
+            Received = downlink.Received,
+            IsControllerLate = downlink.IsControllerLate
         };
     }
 }

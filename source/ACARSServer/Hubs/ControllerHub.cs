@@ -71,7 +71,7 @@ public class ControllerHub(
         await base.OnConnectedAsync();
     }
 
-    public async Task<SendUplinkResult> SendUplink(
+    public async Task<UplinkMessageDto> SendUplink(
         string recipient,
         int? replyToDownlinkId,
         CpdlcUplinkResponseType responseType,
@@ -103,10 +103,12 @@ public class ControllerHub(
             modelResponseType,
             content);
 
-        return await mediator.Send(command);
+        var result = await mediator.Send(command);
+
+        return DialogueConverter.ToDto(result.UplinkMessage);
     }
 
-    public async Task<GetConnectedAircraftResult> GetConnectedAircraft()
+    public async Task<ConnectedAircraftInfo[]> GetConnectedAircraft()
     {
         var controller = await controllerRepository.FindByConnectionId(Context.ConnectionId, CancellationToken.None);
         if (controller is null)
@@ -116,7 +118,9 @@ public class ControllerHub(
         }
 
         var query = new GetConnectedAircraftRequest(controller.FlightSimulationNetwork, controller.StationIdentifier);
-        return await mediator.Send(query);
+        var result = await mediator.Send(query);
+
+        return result.Aircraft;
     }
 
     public async Task AcknowledgeDownlink(Guid dialogueId, int downlinkMessageId)
@@ -127,6 +131,17 @@ public class ControllerHub(
         _logger.Information(
             "Controller acknowledged downlink {MessageId} in dialogue {DialogueId}",
             downlinkMessageId,
+            dialogueId);
+    }
+
+    public async Task AcknowledgeUplink(Guid dialogueId, int uplinkMessageId)
+    {
+        var command = new AcknowledgeUplinkCommand(dialogueId, uplinkMessageId);
+        await mediator.Send(command);
+
+        _logger.Information(
+            "Controller acknowledged uplink {MessageId} in dialogue {DialogueId}",
+            uplinkMessageId,
             dialogueId);
     }
 

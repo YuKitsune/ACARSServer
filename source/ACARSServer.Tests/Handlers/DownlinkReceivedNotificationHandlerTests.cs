@@ -13,7 +13,7 @@ namespace ACARSServer.Tests.Handlers;
 public class DownlinkReceivedNotificationHandlerTests
 {
     [Fact]
-    public async Task Handle_SendsMessageToMatchingControllers()
+    public async Task Handle_PublishesDialogueChangedNotification()
     {
         // Arrange
         var clock = new TestClock();
@@ -48,6 +48,7 @@ public class DownlinkReceivedNotificationHandlerTests
 
         var dialogueRepository = new TestDialogueRepository();
 
+        var publisher = new TestPublisher();
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
@@ -55,6 +56,7 @@ public class DownlinkReceivedNotificationHandlerTests
             controllerManager,
             dialogueRepository,
             hubContext,
+            publisher,
             Logger.None);
 
         var downlinkMessage = new DownlinkMessage(
@@ -74,21 +76,18 @@ public class DownlinkReceivedNotificationHandlerTests
         // Act
         await handler.Handle(notification, CancellationToken.None);
 
-        // Assert
-        hubContext.Clients.Received(1).Clients(
-            Arg.Is<IReadOnlyList<string>>(ids =>
-                ids.Count == 2 &&
-                ids.Contains("ConnectionId-1") &&
-                ids.Contains("ConnectionId-1")));
-
-        await clientProxy.Received(1).SendCoreAsync(
-            "DownlinkReceived",
-            Arg.Is<object[]>(args => args.Length == 1 && args[0] == downlinkMessage),
-            Arg.Any<CancellationToken>());
+        // Assert - DialogueChangedNotification is published
+        Assert.Single(publisher.PublishedNotifications.OfType<DialogueChangedNotification>());
+        var dialogueNotification = publisher.PublishedNotifications.OfType<DialogueChangedNotification>().First();
+        Assert.Equal("UAL123", dialogueNotification.Dialogue.AircraftCallsign);
+        Assert.Equal("VATSIM", dialogueNotification.Dialogue.FlightSimulationNetwork);
+        Assert.Equal("YBBB", dialogueNotification.Dialogue.StationIdentifier);
+        Assert.Single(dialogueNotification.Dialogue.Messages);
+        Assert.Equal(downlinkMessage, dialogueNotification.Dialogue.Messages.First());
     }
 
     [Fact]
-    public async Task Handle_DoesNotSendWhenNoControllersMatch()
+    public async Task Handle_StillCreatesDialogueWhenNoControllersMatch()
     {
         // Arrange
         var clock = new TestClock();
@@ -115,6 +114,7 @@ public class DownlinkReceivedNotificationHandlerTests
 
         var dialogueRepository = new TestDialogueRepository();
 
+        var publisher = new TestPublisher();
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
@@ -122,6 +122,7 @@ public class DownlinkReceivedNotificationHandlerTests
             controllerManager,
             dialogueRepository,
             hubContext,
+            publisher,
             Logger.None);
 
         var downlinkMessage = new DownlinkMessage(
@@ -141,16 +142,14 @@ public class DownlinkReceivedNotificationHandlerTests
         // Act
         await handler.Handle(notification, CancellationToken.None);
 
-        // Assert
-        hubContext.Clients.DidNotReceive().Clients(Arg.Any<IReadOnlyList<string>>());
-        await clientProxy.DidNotReceive().SendCoreAsync(
-            Arg.Any<string>(),
-            Arg.Any<object[]>(),
-            Arg.Any<CancellationToken>());
+        // Assert - DialogueChangedNotification is still published even with no matching controllers
+        Assert.Single(publisher.PublishedNotifications.OfType<DialogueChangedNotification>());
+        var dialogueNotification = publisher.PublishedNotifications.OfType<DialogueChangedNotification>().First();
+        Assert.Equal("UAL123", dialogueNotification.Dialogue.AircraftCallsign);
     }
 
     [Fact]
-    public async Task Handle_OnlySendsToControllersOnMatchingNetwork()
+    public async Task Handle_PublishesDialogueChangedForCorrectNetwork()
     {
         // Arrange
         var clock = new TestClock();
@@ -185,6 +184,7 @@ public class DownlinkReceivedNotificationHandlerTests
 
         var dialogueRepository = new TestDialogueRepository();
 
+        var publisher = new TestPublisher();
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
@@ -192,6 +192,7 @@ public class DownlinkReceivedNotificationHandlerTests
             controllerManager,
             dialogueRepository,
             hubContext,
+            publisher,
             Logger.None);
 
         var downlinkMessage = new DownlinkMessage(
@@ -211,12 +212,12 @@ public class DownlinkReceivedNotificationHandlerTests
         // Act
         await handler.Handle(notification, CancellationToken.None);
 
-        // Assert
-        hubContext.Clients.Received(1).Clients(
-            Arg.Is<IReadOnlyList<string>>(ids =>
-                ids.Count == 1 &&
-                ids.Contains("conn-vatsim") &&
-                !ids.Contains("conn-ivao")));
+        // Assert - DialogueChangedNotification is published with correct network
+        Assert.Single(publisher.PublishedNotifications.OfType<DialogueChangedNotification>());
+        var dialogueNotification = publisher.PublishedNotifications.OfType<DialogueChangedNotification>().First();
+        Assert.Equal("VATSIM", dialogueNotification.Dialogue.FlightSimulationNetwork);
+        Assert.Equal("YBBB", dialogueNotification.Dialogue.StationIdentifier);
+        Assert.Equal("UAL123", dialogueNotification.Dialogue.AircraftCallsign);
     }
 
     [Fact]
@@ -247,6 +248,7 @@ public class DownlinkReceivedNotificationHandlerTests
 
         var dialogueRepository = new TestDialogueRepository();
 
+        var publisher = new TestPublisher();
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
@@ -254,6 +256,7 @@ public class DownlinkReceivedNotificationHandlerTests
             controllerManager,
             dialogueRepository,
             hubContext,
+            publisher,
             Logger.None);
 
         var downlinkMessage = new DownlinkMessage(
@@ -314,6 +317,7 @@ public class DownlinkReceivedNotificationHandlerTests
 
         var dialogueRepository = new TestDialogueRepository();
 
+        var publisher = new TestPublisher();
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftManager,
             mediator,
@@ -321,6 +325,7 @@ public class DownlinkReceivedNotificationHandlerTests
             controllerManager,
             dialogueRepository,
             hubContext,
+            publisher,
             Logger.None);
 
         var downlinkMessage = new DownlinkMessage(
@@ -363,6 +368,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var mediator = Substitute.For<IMediator>();
         var hubContext = Substitute.For<IHubContext<ControllerHub>>();
 
+        var publisher = new TestPublisher();
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftRepository,
             mediator,
@@ -370,6 +376,7 @@ public class DownlinkReceivedNotificationHandlerTests
             controllerRepository,
             dialogueRepository,
             hubContext,
+            publisher,
             Logger.None);
 
         var downlink = new DownlinkMessage(
@@ -428,6 +435,7 @@ public class DownlinkReceivedNotificationHandlerTests
         var existingDialogue = new Dialogue("VATSIM", "YBBB", "UAL123", uplink);
         await dialogueRepository.Add(existingDialogue, CancellationToken.None);
 
+        var publisher = new TestPublisher();
         var handler = new DownlinkReceivedNotificationHandler(
             aircraftRepository,
             mediator,
@@ -435,6 +443,7 @@ public class DownlinkReceivedNotificationHandlerTests
             controllerRepository,
             dialogueRepository,
             hubContext,
+            publisher,
             Logger.None);
 
         var downlink = new DownlinkMessage(

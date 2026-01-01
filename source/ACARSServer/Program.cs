@@ -7,6 +7,15 @@ using DotNetEnv;
 using Serilog;
 using Serilog.Events;
 
+// TODO:
+// - Introduce a Contracts project
+// - Create a plugin branch with the same contracts
+// - Local testing
+// - Value types for IDs
+// - Re-do dashboard
+// - Authentication
+// - Remove FlightSimulationNetwork variable
+
 TryLoadEnvFile();
 
 var builder = WebApplication.CreateBuilder(args);

@@ -108,7 +108,7 @@ public class Dialogue
         return !uplinkMessage.Content.Equals("STANDBY") && !uplinkMessage.Content.Equals("REQUEST DEFERRED");
     }
 
-    void TryClose(DateTimeOffset now)
+    public void TryClose(DateTimeOffset now)
     {
         if (_messages.All(m => m.IsClosed))
         {

@@ -15,11 +15,13 @@ public class SendUplinkCommandHandlerTests
         var clientManager = new TestClientManager();
         var messageIdProvider = new TestMessageIdProvider();
         var dialogueRepository = new TestDialogueRepository();
+        var publisher = new TestPublisher();
         var clock = new TestClock();
         var handler = new SendUplinkCommandHandler(
             clientManager,
             messageIdProvider,
             dialogueRepository,
+            publisher,
             clock,
             Logger.None);
 
@@ -58,11 +60,13 @@ public class SendUplinkCommandHandlerTests
         var clientManager = new TestClientManager();
         var messageIdProvider = new TestMessageIdProvider();
         var dialogueRepository = new TestDialogueRepository();
+        var publisher = new TestPublisher();
         var clock = new TestClock();
         var handler = new SendUplinkCommandHandler(
             clientManager,
             messageIdProvider,
             dialogueRepository,
+            publisher,
             clock,
             Logger.None);
 
@@ -101,11 +105,13 @@ public class SendUplinkCommandHandlerTests
         var clientManager = new TestClientManager();
         var messageIdProvider = new TestMessageIdProvider();
         var dialogueRepository = new TestDialogueRepository();
+        var publisher = new TestPublisher();
         var clock = new TestClock();
         var handler = new SendUplinkCommandHandler(
             clientManager,
             messageIdProvider,
             dialogueRepository,
+            publisher,
             clock,
             Logger.None);
 
@@ -156,10 +162,12 @@ public class SendUplinkCommandHandlerTests
         var existingDialogue = new Dialogue("VATSIM", "YBBB", "UAL123", downlink);
         await dialogueRepository.Add(existingDialogue, CancellationToken.None);
 
+        var publisher = new TestPublisher();
         var handler = new SendUplinkCommandHandler(
             clientManager,
             messageIdProvider,
             dialogueRepository,
+            publisher,
             clock,
             Logger.None);
 

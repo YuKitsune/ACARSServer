@@ -27,9 +27,22 @@ public class TestDialogueRepository : IDialogueRepository
             cancellationToken);
     }
 
+    public Task<Dialogue?> FindById(Guid id, CancellationToken cancellationToken)
+    {
+        return _inner.FindById(id, cancellationToken);
+    }
+
     public Task<Dialogue[]> All(CancellationToken cancellationToken)
     {
         return _inner.All(cancellationToken);
+    }
+
+    public Task<Dialogue[]> AllForStation(
+        string flightSimulationNetwork,
+        string stationIdentifier,
+        CancellationToken cancellationToken)
+    {
+        return _inner.AllForStation(flightSimulationNetwork, stationIdentifier, cancellationToken);
     }
 
     public Task Remove(Dialogue dialogue, CancellationToken cancellationToken)

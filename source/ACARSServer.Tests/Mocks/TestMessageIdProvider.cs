@@ -10,4 +10,9 @@ public class TestMessageIdProvider : IMessageIdProvider
     {
         return Task.FromResult(_nextId++);
     }
+
+    public void SetNextId(int id)
+    {
+        _nextId = id;
+    }
 }
