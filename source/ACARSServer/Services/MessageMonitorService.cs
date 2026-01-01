@@ -124,7 +124,7 @@ public class MessageMonitorService(IDialogueRepository repository, IClock clock,
 
         foreach (var dialogue in dialogues)
         {
-            if (!dialogue.IsClosed)
+            if (!dialogue.IsClosed || dialogue.IsArchived)
                 continue;
 
             var lastAckTime = dialogue.Messages.Max(d => d.Acknowledged);
