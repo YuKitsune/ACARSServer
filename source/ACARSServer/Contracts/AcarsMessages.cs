@@ -79,6 +79,9 @@ public class UplinkMessageDto : CpdlcMessageDto
     public required DateTimeOffset Sent { get; init; }
 
     [JsonProperty]
+    public required bool IsClosedManually { get; init; }
+
+    [JsonProperty]
     public required bool IsPilotLate { get; init; }
 
     [JsonProperty]
@@ -139,6 +142,7 @@ public static class DialogueConverter
             MessageReference = uplink.MessageReference,
             AlertType = uplink.AlertType,
             Closed = uplink.Closed,
+            IsClosedManually = uplink.ClosedManually,
             Acknowledged = uplink.Sent,
             Recipient = uplink.Recipient,
             SenderCallsign = uplink.SenderCallsign,
