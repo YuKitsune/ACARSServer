@@ -8,13 +8,13 @@ using Serilog;
 using Serilog.Events;
 
 // TODO:
+// - Remove FlightSimulationNetwork variable
+// - Aggregate controller connections for multiple FIRs
 // - Introduce a Contracts project
-// - Create a plugin branch with the same contracts
-// - Local testing
 // - Value types for IDs
+// - Improved configuration
 // - Re-do dashboard
 // - Authentication
-// - Remove FlightSimulationNetwork variable
 
 TryLoadEnvFile();
 
