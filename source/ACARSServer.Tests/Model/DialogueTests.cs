@@ -399,4 +399,45 @@ public class DialogueTests
         Assert.True(dialogue.IsClosed); // All messages closed, dialogue closes
         Assert.Equal(downlink2.Received, dialogue.Closed);
     }
+
+    [Fact]
+    public void Dialogue_LogonRequestAndAcceptanceClosesImmediately()
+    {
+        // Arrange
+        var time = DateTimeOffset.UtcNow;
+
+        // Pilot sends logon request
+        var logonRequest = new DownlinkMessage(
+            1,
+            null,
+            "UAL123",
+            CpdlcDownlinkResponseType.ResponseRequired,
+            AlertType.None,
+            "REQUEST LOGON",
+            time);
+
+        var dialogue = new Dialogue("VATSIM", "YBBB", "UAL123", logonRequest);
+        Assert.False(dialogue.IsClosed); // Dialogue open - waiting for response
+
+        // System sends LOGON ACCEPTED (NoResponse type, so self-closing)
+        var logonAccepted = new UplinkMessage(
+            2,
+            1, // References logon request
+            "UAL123",
+            "SYSTEM",
+            CpdlcUplinkResponseType.NoResponse,
+            AlertType.None,
+            "LOGON ACCEPTED",
+            time.AddSeconds(1));
+
+        // Act
+        dialogue.AddMessage(logonAccepted);
+
+        // Assert
+        Assert.True(logonRequest.IsClosed); // Request is closed by the acceptance
+        Assert.True(logonRequest.IsAcknowledged); // Request is auto-acknowledged
+        Assert.True(logonAccepted.IsClosed); // Acceptance is self-closing (NoResponse)
+        Assert.True(dialogue.IsClosed); // Dialogue closes immediately
+        Assert.Equal(logonAccepted.Sent, dialogue.Closed);
+    }
 }

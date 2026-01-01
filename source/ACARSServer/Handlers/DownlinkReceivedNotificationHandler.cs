@@ -22,8 +22,19 @@ public class DownlinkReceivedNotificationHandler(
     public async Task Handle(DownlinkReceivedNotification notification, CancellationToken cancellationToken)
     {
         // Intercept logon requests and automatically respond
+        Dialogue? dialogue;
         if (ControlMessages.IsLogonRequest(notification.Downlink))
         {
+            // Create a dialogue for the logon request
+            dialogue = new Dialogue(
+                notification.FlightSimulationNetwork,
+                notification.StationIdentifier,
+                notification.Downlink.Sender,
+                notification.Downlink);
+            await dialogueRepository.Add(dialogue, cancellationToken);
+
+            await publisher.Publish(new DialogueChangedNotification(dialogue), cancellationToken);
+
             await mediator.Send(
                 new LogonCommand(
                     notification.Downlink.MessageId,
@@ -79,7 +90,7 @@ public class DownlinkReceivedNotificationHandler(
         aircraftConnection.LogLastSeen(clock.UtcNow());
 
         // Add or update the dialogue
-        var dialogue = notification.Downlink.MessageReference.HasValue
+        dialogue = notification.Downlink.MessageReference.HasValue
             ? await dialogueRepository.FindDialogueForMessage(
                 notification.FlightSimulationNetwork,
                 notification.StationIdentifier,

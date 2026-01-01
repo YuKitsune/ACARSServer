@@ -473,4 +473,68 @@ public class DownlinkReceivedNotificationHandlerTests
         Assert.Equal(2, dialogue.Messages.Count);
         Assert.Contains(downlink, dialogue.Messages);
     }
+
+    [Fact]
+    public async Task Handle_CreatesDialogueForLogonRequest()
+    {
+        // Arrange
+        var clock = new TestClock();
+        var aircraftRepository = new TestAircraftRepository();
+        var controllerRepository = new TestControllerRepository();
+        var dialogueRepository = new TestDialogueRepository();
+        var mediator = Substitute.For<IMediator>();
+        var hubContext = Substitute.For<IHubContext<ControllerHub>>();
+        var publisher = new TestPublisher();
+
+        var handler = new DownlinkReceivedNotificationHandler(
+            aircraftRepository,
+            mediator,
+            clock,
+            controllerRepository,
+            dialogueRepository,
+            hubContext,
+            publisher,
+            Logger.None);
+
+        var logonRequest = new DownlinkMessage(
+            1,
+            null,
+            "UAL123",
+            CpdlcDownlinkResponseType.ResponseRequired,
+            AlertType.None,
+            "REQUEST LOGON",
+            clock.UtcNow());
+
+        var notification = new DownlinkReceivedNotification("VATSIM", "YBBB", logonRequest);
+
+        // Act
+        await handler.Handle(notification, CancellationToken.None);
+
+        // Assert - dialogue was created
+        var dialogue = await dialogueRepository.FindDialogueForMessage(
+            "VATSIM",
+            "YBBB",
+            "UAL123",
+            1,
+            CancellationToken.None);
+
+        Assert.NotNull(dialogue);
+        Assert.Single(dialogue.Messages);
+        Assert.Equal(logonRequest, dialogue.Messages[0]);
+        Assert.Equal("UAL123", dialogue.AircraftCallsign);
+        Assert.Equal("VATSIM", dialogue.FlightSimulationNetwork);
+        Assert.Equal("YBBB", dialogue.StationIdentifier);
+
+        // Assert - DialogueChangedNotification was published
+        Assert.Single(publisher.PublishedNotifications.OfType<DialogueChangedNotification>());
+
+        // Assert - LogonCommand was sent
+        await mediator.Received(1).Send(
+            Arg.Is<LogonCommand>(cmd =>
+                cmd.DownlinkId == 1 &&
+                cmd.Callsign == "UAL123" &&
+                cmd.StationId == "YBBB" &&
+                cmd.FlightSimulationNetwork == "VATSIM"),
+            Arg.Any<CancellationToken>());
+    }
 }
