@@ -60,12 +60,12 @@ public class AircraftConnectedNotificationHandlerTests
                 ids.Contains("ConnectionId-2")));
 
         await clientProxy.Received(1).SendCoreAsync(
-            "AircraftConnected",
+            "AircraftConnectionUpdated",
             Arg.Is<object[]>(args =>
                 args.Length == 1 &&
-                args[0] is ConnectedAircraftInfo &&
-                ((ConnectedAircraftInfo)args[0]).Callsign == "UAL123" &&
-                ((ConnectedAircraftInfo)args[0]).DataAuthorityState == DataAuthorityState.NextDataAuthority),
+                args[0] is AircraftConnectionDto &&
+                ((AircraftConnectionDto)args[0]).Callsign == "UAL123" &&
+                ((AircraftConnectionDto)args[0]).DataAuthorityState == DataAuthorityState.NextDataAuthority),
             Arg.Any<CancellationToken>());
     }
 
@@ -182,12 +182,12 @@ public class AircraftConnectedNotificationHandlerTests
 
         // Assert - notification includes both callsign and data authority state
         await clientProxy.Received(1).SendCoreAsync(
-            "AircraftConnected",
+            "AircraftConnectionUpdated",
             Arg.Is<object[]>(args =>
                 args.Length == 1 &&
-                args[0] is ConnectedAircraftInfo &&
-                ((ConnectedAircraftInfo)args[0]).Callsign == "UAL123" &&
-                ((ConnectedAircraftInfo)args[0]).DataAuthorityState == DataAuthorityState.CurrentDataAuthority),
+                args[0] is AircraftConnectionDto &&
+                ((AircraftConnectionDto)args[0]).Callsign == "UAL123" &&
+                ((AircraftConnectionDto)args[0]).DataAuthorityState == DataAuthorityState.CurrentDataAuthority),
             Arg.Any<CancellationToken>());
     }
 }

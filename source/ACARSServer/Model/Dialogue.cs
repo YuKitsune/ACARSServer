@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace ACARSServer.Model;
 
 // Messages that are related (e.g. a CPDLC downlink request, the corresponding CPDLC uplink clearance and the subsequent
@@ -32,9 +34,13 @@ public class Dialogue
     public IReadOnlyList<ICpdlcMessage> Messages => _messages.AsReadOnly();
     public DateTimeOffset Opened { get; }
     public DateTimeOffset? Closed { get; private set; }
+    
+    [MemberNotNullWhen(true, nameof(Closed))]
     public bool IsClosed => Closed.HasValue;
     
     public DateTimeOffset? Archived { get; private set; }
+
+    [MemberNotNullWhen(true, nameof(Archived))]
     public bool IsArchived => Archived.HasValue;
 
     public void AddMessage(ICpdlcMessage message)

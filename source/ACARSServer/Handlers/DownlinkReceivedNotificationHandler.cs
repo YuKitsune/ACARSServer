@@ -85,6 +85,31 @@ public class DownlinkReceivedNotificationHandler(
         if (aircraftConnection.DataAuthorityState == DataAuthorityState.NextDataAuthority)
         {
             aircraftConnection.PromoteToCurrentDataAuthority();
+
+            // Notify all controllers that the aircraft has been promoted to CurrentDataAuthority
+            var controllers = await controllerRepository.All(
+                notification.FlightSimulationNetwork,
+                notification.StationIdentifier,
+                cancellationToken);
+
+            if (controllers.Any())
+            {
+                await hubContext.Clients
+                    .Clients(controllers.Select(c => c.ConnectionId))
+                    .SendAsync(
+                        "AircraftConnectionUpdated",
+                        new Contracts.AircraftConnectionDto(
+                            aircraftConnection.Callsign,
+                            aircraftConnection.StationId,
+                            aircraftConnection.FlightSimulationNetwork,
+                            aircraftConnection.DataAuthorityState),
+                        cancellationToken);
+
+                logger.Information(
+                    "Notified {ControllerCount} controller(s) that aircraft {Callsign} was promoted to CurrentDataAuthority",
+                    controllers.Length,
+                    aircraftConnection.Callsign);
+            }
         }
         
         aircraftConnection.LogLastSeen(clock.UtcNow());

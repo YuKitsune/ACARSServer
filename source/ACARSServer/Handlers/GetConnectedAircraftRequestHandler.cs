@@ -18,7 +18,7 @@ public class GetConnectedAircraftRequestHandler(IAircraftRepository aircraftRepo
             cancellationToken);
 
         var aircraftInfo = aircraft
-            .Select(a => new ConnectedAircraftInfo(
+            .Select(a => new AircraftConnectionDto(
                 a.Callsign,
                 a.StationId,
                 a.FlightSimulationNetwork,

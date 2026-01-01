@@ -17,7 +17,7 @@ public enum CpdlcUplinkResponseType
     Roger
 }
 
-public record ConnectedAircraftInfo(
+public record AircraftConnectionDto(
     string Callsign,
     string StationId,
     string FlightSimulationNetwork,

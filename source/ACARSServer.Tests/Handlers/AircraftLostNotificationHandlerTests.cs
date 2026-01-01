@@ -112,7 +112,7 @@ public class AircraftLostNotificationHandlerTests
 
         // Assert - disconnection notification is sent
         await clientProxy.Received(1).SendCoreAsync(
-            "AircraftDisconnected",
+            "AircraftConnectionRemoved",
             Arg.Is<object[]>(args => args.Length == 1 && args[0].ToString() == "UAL123"),
             Arg.Any<CancellationToken>());
 

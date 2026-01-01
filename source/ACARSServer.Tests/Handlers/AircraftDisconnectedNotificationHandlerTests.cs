@@ -55,7 +55,7 @@ public class AircraftDisconnectedNotificationHandlerTests
                 ids.Contains("ConnectionId-2")));
 
         await clientProxy.Received(1).SendCoreAsync(
-            "AircraftDisconnected",
+            "AircraftConnectionRemoved",
             Arg.Is<object[]>(args => args.Length == 1 && args[0].ToString() == "UAL123"),
             Arg.Any<CancellationToken>());
     }

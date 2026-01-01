@@ -39,8 +39,8 @@ public class AircraftConnectedNotificationHandler(
         await hubContext.Clients
             .Clients(controllers.Select(c => c.ConnectionId))
             .SendAsync(
-                "AircraftConnected",
-                new ConnectedAircraftInfo(notification.Callsign, notification.StationId, notification.FlightSimulationNetwork, notification.DataAuthorityState),
+                "AircraftConnectionUpdated",
+                new AircraftConnectionDto(notification.Callsign, notification.StationId, notification.FlightSimulationNetwork, notification.DataAuthorityState),
                 cancellationToken);
 
         logger.Information(

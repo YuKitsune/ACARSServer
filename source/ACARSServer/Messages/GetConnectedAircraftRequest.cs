@@ -6,4 +6,4 @@ namespace ACARSServer.Messages;
 public record GetConnectedAircraftRequest(string FlightSimulationNetwork, string StationIdentifier)
     : IRequest<GetConnectedAircraftResult>;
 
-public record GetConnectedAircraftResult(ConnectedAircraftInfo[] Aircraft);
+public record GetConnectedAircraftResult(AircraftConnectionDto[] Aircraft);

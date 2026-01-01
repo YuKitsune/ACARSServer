@@ -281,6 +281,26 @@ public class DownlinkReceivedNotificationHandlerTests
 
         // Assert - aircraft is promoted to CurrentDataAuthority
         Assert.Equal(DataAuthorityState.CurrentDataAuthority, aircraft.DataAuthorityState);
+
+        // Assert - AircraftConnectionUpdated event was sent to controllers
+        var receivedCalls = clientProxy.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == "SendCoreAsync")
+            .ToList();
+
+        Assert.Single(receivedCalls);
+        var args = receivedCalls[0].GetArguments();
+        Assert.Equal("AircraftConnectionUpdated", args[0]);
+
+        var eventArgs = args[1] as object[];
+        Assert.NotNull(eventArgs);
+        Assert.Single(eventArgs);
+
+        var dto = eventArgs[0] as Contracts.AircraftConnectionDto;
+        Assert.NotNull(dto);
+        Assert.Equal("UAL123", dto.Callsign);
+        Assert.Equal("YBBB", dto.StationId);
+        Assert.Equal("VATSIM", dto.FlightSimulationNetwork);
+        Assert.Equal(DataAuthorityState.CurrentDataAuthority, dto.DataAuthorityState);
     }
 
     [Fact]

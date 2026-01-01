@@ -108,7 +108,7 @@ public class ControllerHub(
         return DialogueConverter.ToDto(result.UplinkMessage);
     }
 
-    public async Task<ConnectedAircraftInfo[]> GetConnectedAircraft()
+    public async Task<AircraftConnectionDto[]> GetConnectedAircraft()
     {
         var controller = await controllerRepository.FindByConnectionId(Context.ConnectionId, CancellationToken.None);
         if (controller is null)
