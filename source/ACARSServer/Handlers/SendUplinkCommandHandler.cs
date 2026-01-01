@@ -34,6 +34,7 @@ public class SendUplinkCommandHandler(
             messageId,
             request.ReplyToDownlinkId,
             request.Recipient,
+            request.Sender,
             request.ResponseType,
             AlertType.None,
             request.Content,

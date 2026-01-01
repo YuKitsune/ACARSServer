@@ -24,6 +24,7 @@ public class MessageMonitorServiceTests
             1,
             null,
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.WilcoUnable,
             AlertType.None,
             "CLIMB TO FL410",
@@ -60,6 +61,7 @@ public class MessageMonitorServiceTests
             1,
             null,
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.WilcoUnable,
             AlertType.None,
             "CLIMB TO FL410",
@@ -95,6 +97,7 @@ public class MessageMonitorServiceTests
             1,
             null,
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.NoResponse,
             AlertType.None,
             "ROGER",
@@ -166,6 +169,7 @@ public class MessageMonitorServiceTests
             1,
             null,
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.WilcoUnable,
             AlertType.None,
             "CLIMB TO FL410",
@@ -204,6 +208,7 @@ public class MessageMonitorServiceTests
             1,
             null,
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.NoResponse,
             AlertType.None,
             "ROGER",
@@ -239,6 +244,7 @@ public class MessageMonitorServiceTests
             1,
             null,
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.NoResponse,
             AlertType.None,
             "ROGER",
@@ -275,6 +281,7 @@ public class MessageMonitorServiceTests
             1,
             null,
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.NoResponse,
             AlertType.None,
             "ROGER",
@@ -310,6 +317,7 @@ public class MessageMonitorServiceTests
             1,
             null,
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.WilcoUnable,
             AlertType.None,
             "CLIMB TO FL410",
@@ -378,8 +386,8 @@ public class MessageMonitorServiceTests
         clock.SetUtcNow(startTime);
 
         // Create multiple dialogues with different aircraft
-        var uplink1 = new UplinkMessage(1, null, "UAL123", CpdlcUplinkResponseType.WilcoUnable, AlertType.None, "CLIMB", startTime);
-        var uplink2 = new UplinkMessage(2, null, "DAL456", CpdlcUplinkResponseType.WilcoUnable, AlertType.None, "DESCEND", startTime);
+        var uplink1 = new UplinkMessage(1, null, "UAL123", "BN-TSN_FSS", CpdlcUplinkResponseType.WilcoUnable, AlertType.None, "CLIMB", startTime);
+        var uplink2 = new UplinkMessage(2, null, "DAL456", "BN-TSN_FSS", CpdlcUplinkResponseType.WilcoUnable, AlertType.None, "DESCEND", startTime);
 
         var dialogue1 = new Dialogue("VATSIM", "YBBB", "UAL123", uplink1);
         var dialogue2 = new Dialogue("VATSIM", "YBBB", "DAL456", uplink2);

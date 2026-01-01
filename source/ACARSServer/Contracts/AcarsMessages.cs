@@ -67,6 +67,9 @@ public class UplinkMessageDto : CpdlcMessageDto
     public required string Recipient { get; init; }
 
     [JsonProperty]
+    public required string SenderCallsign { get; init; }
+
+    [JsonProperty]
     public required CpdlcUplinkResponseType ResponseType { get; init; }
 
     [JsonProperty]
@@ -138,6 +141,7 @@ public static class DialogueConverter
             Closed = uplink.Closed,
             Acknowledged = uplink.Sent,
             Recipient = uplink.Recipient,
+            SenderCallsign = uplink.SenderCallsign,
             ResponseType = uplink.ResponseType switch
             {
                 Model.CpdlcUplinkResponseType.NoResponse => CpdlcUplinkResponseType.NoResponse,

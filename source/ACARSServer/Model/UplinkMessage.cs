@@ -6,6 +6,7 @@ public class UplinkMessage(
     int messageId,
     int? messageReference,
     string recipient,
+    string senderCallsign,
     CpdlcUplinkResponseType responseType,
     AlertType alertType,
     string content,
@@ -15,6 +16,7 @@ public class UplinkMessage(
     public int MessageId { get; } = messageId;
     public int? MessageReference { get; } = messageReference;
     public string Recipient { get; } = recipient;
+    public string SenderCallsign { get; } = senderCallsign;
     public CpdlcUplinkResponseType ResponseType { get; } = responseType;
     public AlertType AlertType { get; } = alertType;
     public string Content { get; } = content;

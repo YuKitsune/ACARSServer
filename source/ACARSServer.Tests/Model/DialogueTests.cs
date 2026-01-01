@@ -90,6 +90,7 @@ public class DialogueTests
             2,
             1, // References downlink message 1
             "UAL123",
+            "SYSTEM",
             CpdlcUplinkResponseType.NoResponse,
             AlertType.None,
             "UNABLE",
@@ -112,6 +113,7 @@ public class DialogueTests
             1,
             null,
             "UAL123",
+            "SYSTEM",
             CpdlcUplinkResponseType.WilcoUnable,
             AlertType.None,
             "CLIMB TO FL410",
@@ -145,6 +147,7 @@ public class DialogueTests
             1,
             null,
             "UAL123",
+            "SYSTEM",
             CpdlcUplinkResponseType.WilcoUnable,
             AlertType.None,
             "CLIMB FL410",
@@ -188,6 +191,7 @@ public class DialogueTests
             2,
             1, // References downlink message 1
             "UAL123",
+            "SYSTEM",
             CpdlcUplinkResponseType.NoResponse,
             AlertType.None,
             "STANDBY",
@@ -221,6 +225,7 @@ public class DialogueTests
             2,
             1, // References downlink message 1
             "UAL123",
+            "SYSTEM",
             CpdlcUplinkResponseType.NoResponse,
             AlertType.None,
             "REQUEST DEFERRED",
@@ -254,6 +259,7 @@ public class DialogueTests
             2,
             1, // References downlink message 1
             "UAL123",
+            "BN-TSN_FSS",
             CpdlcUplinkResponseType.NoResponse, // No response required, so self-closing
             AlertType.None,
             "UNABLE",
@@ -288,6 +294,7 @@ public class DialogueTests
             2,
             1, // References downlink message 1
             "UAL123",
+            "SYSTEM",
             CpdlcUplinkResponseType.WilcoUnable, // Requires response, not self-closing
             AlertType.None,
             "CLIMB TO FL410",
@@ -350,6 +357,7 @@ public class DialogueTests
             2,
             1,
             "UAL123",
+            "SYSTEM",
             CpdlcUplinkResponseType.NoResponse,
             AlertType.None,
             "STANDBY",
@@ -364,6 +372,7 @@ public class DialogueTests
             3,
             1,
             "UAL123",
+            "SYSTEM",
             CpdlcUplinkResponseType.WilcoUnable,
             AlertType.None,
             "CLIMG TO FL410",
