@@ -439,5 +439,7 @@ public class DialogueTests
         Assert.True(logonAccepted.IsClosed); // Acceptance is self-closing (NoResponse)
         Assert.True(dialogue.IsClosed); // Dialogue closes immediately
         Assert.Equal(logonAccepted.Sent, dialogue.Closed);
+        Assert.True(dialogue.IsArchived); // Dialogue is auto-archived with LOGON ACCEPTED
+        Assert.Equal(logonAccepted.Sent, dialogue.Archived);
     }
 }

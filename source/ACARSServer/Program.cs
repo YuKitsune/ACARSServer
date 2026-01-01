@@ -34,10 +34,7 @@ builder.Services.AddSingleton<IAircraftRepository, InMemoryAircraftRepository>()
 builder.Services.AddSingleton<IDialogueRepository, InMemoryDialogueRepository>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddSignalR()
-    .AddNewtonsoftJsonProtocol(options =>
-    {
-        options.PayloadSerializerSettings.TypeNameHandling = Newtonsoft.Json.TypeNameHandling.Auto;
-    });
+    .AddJsonProtocol();
 builder.Services.AddRazorPages();
 
 builder.Services.AddHostedService<AircraftConnectionWatchdog>();

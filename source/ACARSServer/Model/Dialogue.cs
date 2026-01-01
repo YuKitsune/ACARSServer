@@ -90,10 +90,26 @@ public class Dialogue
 
                 break;
         }
-        
-        // TODO: Immediately archive when certain uplinks are added (i.e. UNABLE DUE TO AIRSPACE RESTRICTIONS or UNABLE DUE TO TRAFFIC)
-        
+
         TryClose(message.Time);
+        TryArchive(message);
+    }
+
+    public void TryClose(DateTimeOffset now)
+    {
+        if (_messages.All(m => m.IsClosed))
+        {
+            Closed = now;
+        }
+    }
+
+    void TryArchive(ICpdlcMessage message)
+    {
+        // Immediately archive when certain uplinks are added
+        if (message is UplinkMessage uplink && ShouldAutoArchive(uplink))
+        {
+            Archive(uplink.Sent);
+        }
     }
 
     bool CanCloseUplink(DownlinkMessage downlink)
@@ -108,11 +124,11 @@ public class Dialogue
         return !uplinkMessage.Content.Equals("STANDBY") && !uplinkMessage.Content.Equals("REQUEST DEFERRED");
     }
 
-    public void TryClose(DateTimeOffset now)
+    bool ShouldAutoArchive(UplinkMessage uplinkMessage)
     {
-        if (_messages.All(m => m.IsClosed))
-        {
-            Closed = now;
-        }
+        // Auto-archive dialogues with these uplink messages
+        return uplinkMessage.Content.Equals("LOGON ACCEPTED") ||
+               uplinkMessage.Content.Equals("UNABLE DUE TO AIRSPACE RESTRICTIONS") ||
+               uplinkMessage.Content.Equals("UNABLE DUE TO TRAFFIC");
     }
 }

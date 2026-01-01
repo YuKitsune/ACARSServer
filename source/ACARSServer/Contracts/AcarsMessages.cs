@@ -1,5 +1,5 @@
+using System.Text.Json.Serialization;
 using ACARSServer.Model;
-using Newtonsoft.Json;
 
 namespace ACARSServer.Contracts;
 
@@ -33,79 +33,39 @@ public record DialogueDto(
     DateTimeOffset? Closed,
     DateTimeOffset? Archived);
 
-[JsonObject(MemberSerialization.OptIn)]
+[JsonDerivedType(typeof(UplinkMessageDto), "uplink")]
+[JsonDerivedType(typeof(DownlinkMessageDto), "downlink")]
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
 public abstract class CpdlcMessageDto
 {
-    [JsonProperty("$type")]
-    public abstract string Type { get; }
-
-    [JsonProperty]
     public required int MessageId { get; init; }
-
-    [JsonProperty]
     public int? MessageReference { get; init; }
-
-    [JsonProperty]
     public required AlertType AlertType { get; init; }
-
-    [JsonProperty]
     public abstract DateTimeOffset Time { get; }
-
-    [JsonProperty]
     public DateTimeOffset? Closed { get; init; }
-
-    [JsonProperty]
     public DateTimeOffset? Acknowledged { get; init; }
 }
 
 public class UplinkMessageDto : CpdlcMessageDto
 {
-    public override string Type => "uplink";
     public override DateTimeOffset Time => Sent;
-
-    [JsonProperty]
     public required string Recipient { get; init; }
-
-    [JsonProperty]
     public required string SenderCallsign { get; init; }
-
-    [JsonProperty]
     public required CpdlcUplinkResponseType ResponseType { get; init; }
-
-    [JsonProperty]
     public required string Content { get; init; }
-
-    [JsonProperty]
     public required DateTimeOffset Sent { get; init; }
-
-    [JsonProperty]
     public required bool IsClosedManually { get; init; }
-
-    [JsonProperty]
     public required bool IsPilotLate { get; init; }
-
-    [JsonProperty]
     public required bool IsTransmissionFailed { get; init; }
 }
 
 public class DownlinkMessageDto : CpdlcMessageDto
 {
-    public override string Type => "downlink";
     public override DateTimeOffset Time => Received;
-
-    [JsonProperty]
     public required string Sender { get; init; }
-
-    [JsonProperty]
     public required CpdlcDownlinkResponseType ResponseType { get; init; }
-
-    [JsonProperty]
     public required string Content { get; init; }
-
-    [JsonProperty]
     public required DateTimeOffset Received { get; init; }
-
-    [JsonProperty]
     public required bool IsControllerLate { get; init; }
 }
 
