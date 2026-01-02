@@ -33,8 +33,6 @@ public class DownlinkReceivedNotificationHandler(
                 notification.Downlink);
             await dialogueRepository.Add(dialogue, cancellationToken);
 
-            await publisher.Publish(new DialogueChangedNotification(dialogue), cancellationToken);
-
             await mediator.Send(
                 new LogonCommand(
                     notification.Downlink.MessageId,
