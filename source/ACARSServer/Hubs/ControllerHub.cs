@@ -123,6 +123,21 @@ public class ControllerHub(
         return result.Aircraft;
     }
 
+    public async Task<ControllerConnectionDto[]> GetConnectedControllers()
+    {
+        var controller = await controllerRepository.FindByConnectionId(Context.ConnectionId, CancellationToken.None);
+        if (controller is null)
+        {
+            _logger.Warning("Controller not found for connection {ConnectionId}", Context.ConnectionId);
+            throw new InvalidOperationException($"Controller not found for connection {Context.ConnectionId}");
+        }
+
+        var query = new GetConnectedControllersRequest(controller.FlightSimulationNetwork, controller.StationIdentifier);
+        var result = await mediator.Send(query);
+
+        return result.Controllers;
+    }
+
     public async Task AcknowledgeDownlink(Guid dialogueId, int downlinkMessageId)
     {
         var command = new AcknowledgeDownlinkCommand(dialogueId, downlinkMessageId);
